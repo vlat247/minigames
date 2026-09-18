@@ -1,4 +1,5 @@
 import { createSectionHeading } from '../../components/section-heading/section-heading';
+import { getAppPath } from '../../utils/paths';
 import './new-games.scss';
 
 interface GameCardData {
@@ -10,31 +11,31 @@ interface GameCardData {
 
 const games: GameCardData[] = [
   {
-    image: '/assets/images/games/cat-mail-co-card.jpg',
+    image: getAppPath('/assets/images/games/cat-mail-co-card.jpg'),
     likes: '38.2K',
     name: 'Cat Mail Co.',
     rating: 4.9,
   },
   {
-    image: '/assets/images/games/islanders-new-shores-card.jpg',
+    image: getAppPath('/assets/images/games/islanders-new-shores-card.jpg'),
     likes: '54.2K',
     name: 'ISLANDERS: New Shores',
     rating: 4.9,
   },
   {
-    image: '/assets/images/games/vacation-cafe-simulator-card.jpg',
+    image: getAppPath('/assets/images/games/vacation-cafe-simulator-card.jpg'),
     likes: '28.8K',
     name: 'Vacation Cafe Simulator',
     rating: 4.8,
   },
   {
-    image: '/assets/images/games/winter-burrow-card.jpg',
+    image: getAppPath('/assets/images/games/winter-burrow-card.jpg'),
     likes: '32.4K',
     name: 'Winter Burrow',
     rating: 4.9,
   },
   {
-    image: '/assets/images/games/heartopia-card.jpg',
+    image: getAppPath('/assets/images/games/heartopia-card.jpg'),
     likes: '46.8K',
     name: 'Heartopia',
     rating: 4.6,
@@ -60,8 +61,8 @@ const createGameCard = (game: GameCardData, index: number): HTMLElement => {
     <div class="game-card__info">
       <h3 class="game-card__title" title="${game.name}">${game.name}</h3>
       <div class="game-card__meta">
-        <span aria-label="Rated ${game.rating} out of 5"><span aria-hidden="true">★</span> ${game.rating}</span>
-        <span aria-label="${game.likes} likes"><span aria-hidden="true">♥</span> ${game.likes}</span>
+        <span role="img" aria-label="Rated ${game.rating} out of 5"><span aria-hidden="true">★</span> ${game.rating}</span>
+        <span role="img" aria-label="${game.likes} likes"><span aria-hidden="true">♥</span> ${game.likes}</span>
       </div>
     </div>
   `;
@@ -76,6 +77,7 @@ export const createNewGamesSection = (): HTMLElement => {
 
   const track: HTMLDivElement = document.createElement('div');
   track.className = 'new-games__track';
+  track.setAttribute('role', 'group');
   track.setAttribute('aria-label', 'New games preview');
   track.append(
     ...games.map((game: GameCardData, index: number): HTMLElement =>
