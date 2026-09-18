@@ -21,7 +21,7 @@
     background: $color-surface;
     color: $color-ink;
     font-size: $font-size-xl;
-    line-height: 1;
+    line-height: $line-height-solid;
     cursor: pointer;
     transition:
       background-color $transition-fast,
@@ -72,11 +72,12 @@
 
     &__track {
       grid-template-columns:
-        $carousel-edge-desktop $carousel-side-desktop minmax(
-          $carousel-main-desktop,
-          1fr
-        )
-        $carousel-side-desktop $carousel-edge-desktop;
+        minmax($carousel-edge-mobile, $carousel-edge-desktop)
+        minmax($carousel-side-fluid-min, $carousel-side-desktop)
+        minmax($carousel-main-tablet, $carousel-main-desktop)
+        minmax($carousel-side-fluid-min, $carousel-side-desktop)
+        minmax($carousel-edge-mobile, $carousel-edge-desktop);
+      justify-content: center;
       margin-top: $space-5;
     }
   }
@@ -123,7 +124,7 @@
     overflow: hidden;
     color: $color-white;
     font-size: $font-size-md;
-    line-height: 1.2;
+    line-height: $line-height-heading;
     text-overflow: ellipsis;
     white-space: nowrap;
   }

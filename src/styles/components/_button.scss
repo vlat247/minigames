@@ -12,7 +12,7 @@
   color: $color-ink;
   font-size: $font-size-xs;
   font-weight: $font-weight-bold;
-  line-height: 1;
+  line-height: $line-height-solid;
   cursor: pointer;
   transition:
     background-color $transition-fast,
@@ -37,13 +37,13 @@
 
     @include hover-capable {
       &:hover {
-        background-color: rgba($color-ink, 0.08);
+        background-color: $color-ink-hover;
       }
     }
   }
 
   &:active {
-    transform: translateY(2px);
+    transform: translateY($border-width-default);
   }
 
   &:disabled {

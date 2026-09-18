@@ -41,13 +41,13 @@
   &__title {
     color: $color-white;
     font-size: $font-size-xl;
-    line-height: 1.2;
+    line-height: $line-height-heading;
   }
 
   &__description {
     color: $color-footer-text;
     font-size: $font-size-xs;
-    line-height: 1.5;
+    line-height: $line-height-body;
   }
 
   &__button {
@@ -57,7 +57,7 @@
 
   &__button-icon {
     font-size: $font-size-xl;
-    line-height: 0.5;
+    line-height: $line-height-icon;
   }
 
   &__contact {

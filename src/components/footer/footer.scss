@@ -23,13 +23,13 @@
     color: $color-white;
     font-size: $font-size-lg;
     font-weight: $font-weight-bold;
-    line-height: 1;
+    line-height: $line-height-solid;
   }
 
   &__description {
     margin: $space-3 0 0;
     font-size: $font-size-xs;
-    line-height: 1.5;
+    line-height: $line-height-body;
   }
 
   &__navigation {
@@ -48,12 +48,13 @@
       margin: 0;
       color: $color-white;
       font-size: $font-size-sm;
-      line-height: 1.2;
+      line-height: $line-height-heading;
     }
 
     a {
       color: $color-footer-text;
       font-size: $font-size-xs;
+      line-height: $line-height-navigation;
       transition: color $transition-fast;
     }
   }

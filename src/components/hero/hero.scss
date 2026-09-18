@@ -41,14 +41,14 @@
 
   &__title {
     font-size: $font-size-xl;
-    line-height: 1.1;
+    line-height: $line-height-display;
   }
 
   &__description {
     color: $color-text;
     font-size: $font-size-2xs;
     font-weight: $font-weight-medium;
-    line-height: 1.5;
+    line-height: $line-height-body;
 
     &--full {
       display: none;
@@ -111,8 +111,9 @@
     }
 
     &__button {
+      height: $button-height-large;
       min-height: $button-height-large;
-      padding: $button-large-padding-y $button-large-padding-x;
+      padding: 0 $button-large-padding-x;
       font-size: $font-size-md;
     }
   }

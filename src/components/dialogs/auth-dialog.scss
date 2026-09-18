@@ -108,7 +108,7 @@
 
     h2 {
       font-size: $font-size-xl;
-      line-height: 1.2;
+      line-height: $line-height-heading;
     }
 
     p {
@@ -308,7 +308,7 @@ body.dialog-open {
   .auth-dialog,
   .auth-dialog::backdrop,
   .auth-panel--active {
-    transition-duration: 0.01ms;
-    animation-duration: 0.01ms;
+    transition-duration: $motion-reduced-duration;
+    animation-duration: $motion-reduced-duration;
   }
 }

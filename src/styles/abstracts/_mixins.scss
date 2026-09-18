@@ -19,13 +19,13 @@
 }
 
 @mixin above-tablet {
-  @media (min-width: ($breakpoint-tablet + 0.02px)) {
+  @media (min-width: ($breakpoint-tablet + $breakpoint-epsilon)) {
     @content;
   }
 }
 
 @mixin mobile-only {
-  @media (max-width: ($breakpoint-tablet - 0.02px)) {
+  @media (max-width: ($breakpoint-tablet - $breakpoint-epsilon)) {
     @content;
   }
 }
