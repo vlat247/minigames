@@ -26,6 +26,10 @@
     line-height: 1.2;
   }
 
+  &__title-compact {
+    display: none;
+  }
+
   @include desktop-up {
     min-height: $space-6;
 
