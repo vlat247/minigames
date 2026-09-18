@@ -11,6 +11,7 @@
 
 .auth-dialog {
   width: min($auth-dialog-width, calc(100% - #{$dialog-viewport-gap}));
+  max-width: $auth-dialog-width;
   max-height: calc(100dvh - #{$dialog-viewport-gap});
   margin: auto;
   padding: $space-3;
