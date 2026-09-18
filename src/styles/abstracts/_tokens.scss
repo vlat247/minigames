@@ -43,6 +43,20 @@ $hero-height-mobile: 413px;
 $hero-height-tablet: 451px;
 $hero-height-desktop: 627px;
 $hero-image-opacity: 0.2;
+// Container queries measure the content box; 283px plus 2 × 2.5px borders
+// equals the 288px rendered-card threshold from the Story 1 rubric.
+$carousel-card-info-threshold: 283px;
+$carousel-height-mobile: 200px;
+$carousel-height-tablet: 280px;
+$carousel-height-desktop: 384px;
+$carousel-edge-mobile: 56px;
+$carousel-edge-tablet: 104px;
+$carousel-edge-desktop: 120px;
+$carousel-side-desktop: 288px;
+$carousel-main-mobile: 218px;
+$carousel-main-tablet: 448px;
+$carousel-main-desktop: 816px;
+$carousel-overlay: rgba(30, 27, 58, 0.9);
 
 // Typography.
 $font-family-primary: 'Inter', Arial, sans-serif;
