@@ -1,14 +1,13 @@
 import './header.scss';
-
-type AuthMode = 'login' | 'register';
-
-interface AuthDialogRequestDetail {
-  mode: AuthMode;
-}
+import {
+  AUTH_DIALOG_OPEN_EVENT,
+  type AuthDialogRequestDetail,
+  type AuthMode,
+} from '../dialogs/auth-dialog-events';
 
 const dispatchAuthRequest = (mode: AuthMode): void => {
   const event: CustomEvent<AuthDialogRequestDetail> =
-    new CustomEvent<AuthDialogRequestDetail>('auth:open', {
+    new CustomEvent<AuthDialogRequestDetail>(AUTH_DIALOG_OPEN_EVENT, {
       detail: { mode },
     });
 
@@ -118,10 +117,10 @@ export const createHeader = (): HTMLElement => {
     if (authButton !== null) {
       const mode: AuthMode =
         authButton.dataset.authMode === 'register' ? 'register' : 'login';
-      dispatchAuthRequest(mode);
       if (menuToggle.getAttribute('aria-expanded') === 'true') {
         setMenuOpen(false);
       }
+      dispatchAuthRequest(mode);
       return;
     }
 

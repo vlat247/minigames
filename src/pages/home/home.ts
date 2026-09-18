@@ -1,3 +1,4 @@
+import { createAuthDialog } from '../../components/dialogs/auth-dialog';
 import { createHeader } from '../../components/header/header';
 import { createHeroSection } from '../../components/hero/hero';
 import { createNewGamesSection } from '../../features/new-games/new-games';
@@ -18,7 +19,7 @@ export const homePage = (): HTMLElement => {
     createDeveloperCta(),
   );
 
-  page.append(createHeader(), main, createFooter());
+  page.append(createHeader(), main, createFooter(), createAuthDialog());
 
   return page;
 };

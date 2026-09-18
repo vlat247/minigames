@@ -22,6 +22,7 @@ $color-hero-overlay: rgba(30, 27, 58, 0.65);
 $space-0-5: 4px;
 $space-1: 8px;
 $space-2: 16px;
+$space-2-5: 20px;
 $space-3: 24px;
 $space-4: 32px;
 $space-5: 40px;
@@ -75,6 +76,11 @@ $footer-top-height-desktop: 151px;
 $footer-explore-width: 87px;
 $footer-company-width: 112px;
 $footer-community-width: 152px;
+$auth-dialog-width: 420px;
+$dialog-viewport-gap: 32px;
+$form-control-height: 48px;
+$google-button-height: 50px;
+$dialog-motion-distance: 16px;
 
 // Typography.
 $font-family-primary: 'Inter', Arial, sans-serif;
@@ -118,6 +124,8 @@ $shadow-small: 4px 4px 0 $color-ink;
 $shadow-medium: 6px 6px 0 $color-ink;
 $shadow-large: 8px 8px 0 $color-ink;
 $shadow-button: 0 4px 0 $color-ink;
+$shadow-dialog: 8px 8px 0 $color-black;
+$focus-ring: 0 0 0 3px rgba($color-tertiary, 0.18);
 $transition-fast: 160ms ease;
 $transition-default: 240ms ease;
 $z-index-header: 10;
