@@ -16,6 +16,7 @@ $color-success: #138a5b;
 $color-white: #ffffff;
 $color-black: #111111;
 $color-backdrop: rgba(17, 17, 17, 0.72);
+$color-hero-overlay: rgba(30, 27, 58, 0.65);
 
 // Spacing scale exported from Figma.
 $space-0-5: 4px;
@@ -36,6 +37,12 @@ $layout-max-width: 1920px;
 $content-max-width: 1680px;
 $header-height-desktop: 85px;
 $header-height-compact: 72px;
+$hero-card-width-tablet: 480px;
+$hero-card-width-desktop: 640px;
+$hero-height-mobile: 413px;
+$hero-height-tablet: 451px;
+$hero-height-desktop: 627px;
+$hero-image-opacity: 0.2;
 
 // Typography.
 $font-family-primary: 'Inter', Arial, sans-serif;
