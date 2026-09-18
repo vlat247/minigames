@@ -128,7 +128,12 @@
     }
 
     &__desktop-nav {
+      display: flex;
       gap: $space-4;
+    }
+
+    &__desktop-actions {
+      display: flex;
     }
 
     &__nav-link {
