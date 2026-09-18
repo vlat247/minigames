@@ -4,6 +4,7 @@ import {
   type AuthDialogRequestDetail,
   type AuthMode,
 } from '../dialogs/auth-dialog-events';
+import { getAppPath } from '../../utils/paths';
 
 const dispatchAuthRequest = (mode: AuthMode): void => {
   const event: CustomEvent<AuthDialogRequestDetail> =
@@ -15,20 +16,22 @@ const dispatchAuthRequest = (mode: AuthMode): void => {
 };
 
 export const createHeader = (): HTMLElement => {
+  const homePath: string = getAppPath('/');
+  const logoPath: string = getAppPath('/assets/icons/logo.png');
   const header: HTMLElement = document.createElement('header');
   header.className = 'site-header';
   header.innerHTML = `
     <div class="site-header__inner">
-      <a class="site-header__brand" href="/" data-link aria-label="MiniGames home">
-        <img class="site-header__logo" src="/assets/icons/logo.png" alt="" width="32" height="32" />
+      <a class="site-header__brand" href="${homePath}" data-link aria-label="MiniGames home">
+        <img class="site-header__logo" src="${logoPath}" alt="" width="32" height="32" />
         <span>MiniGames</span>
       </a>
 
       <nav class="site-header__desktop-nav" aria-label="Primary navigation">
-        <a class="site-header__nav-link site-header__nav-link--active" href="/" data-link>Home</a>
-        <a class="site-header__nav-link" href="/" data-link>Library</a>
-        <a class="site-header__nav-link" href="/" data-link>Tournaments</a>
-        <a class="site-header__nav-link" href="/" data-link>Community</a>
+        <a class="site-header__nav-link site-header__nav-link--active" href="${homePath}" data-link>Home</a>
+        <a class="site-header__nav-link" href="${homePath}" data-link>Library</a>
+        <a class="site-header__nav-link" href="${homePath}" data-link>Tournaments</a>
+        <a class="site-header__nav-link" href="${homePath}" data-link>Community</a>
       </nav>
 
       <div class="site-header__desktop-actions">
@@ -53,16 +56,16 @@ export const createHeader = (): HTMLElement => {
     </div>
 
     <div class="mobile-menu" id="mobile-navigation" aria-hidden="true">
-      <a class="mobile-menu__brand" href="/" data-link aria-label="MiniGames home">
-        <img src="/assets/icons/logo.png" alt="" width="32" height="32" />
+      <a class="mobile-menu__brand" href="${homePath}" data-link aria-label="MiniGames home">
+        <img src="${logoPath}" alt="" width="32" height="32" />
         <span>MiniGames</span>
       </a>
 
       <nav class="mobile-menu__nav" aria-label="Mobile navigation">
-        <a class="mobile-menu__link mobile-menu__link--active" href="/" data-link>Home</a>
-        <a class="mobile-menu__link" href="/" data-link>Library</a>
-        <a class="mobile-menu__link" href="/" data-link>Tournaments</a>
-        <a class="mobile-menu__link" href="/" data-link>Community</a>
+        <a class="mobile-menu__link mobile-menu__link--active" href="${homePath}" data-link>Home</a>
+        <a class="mobile-menu__link" href="${homePath}" data-link>Library</a>
+        <a class="mobile-menu__link" href="${homePath}" data-link>Tournaments</a>
+        <a class="mobile-menu__link" href="${homePath}" data-link>Community</a>
       </nav>
 
       <div class="mobile-menu__actions">

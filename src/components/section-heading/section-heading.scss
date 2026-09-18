@@ -23,7 +23,7 @@
   &__title {
     margin: 0;
     font-size: $font-size-xl;
-    line-height: 1.2;
+    line-height: $line-height-heading;
   }
 
   &__title-compact {

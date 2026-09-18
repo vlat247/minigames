@@ -1,12 +1,16 @@
 import './developer-cta.scss';
+import { getAppPath } from '../../utils/paths';
 
 export const createDeveloperCta = (): HTMLElement => {
+  const illustrationPath: string = getAppPath(
+    '/assets/images/home/developer-workspace.png',
+  );
   const section: HTMLElement = document.createElement('section');
   section.className = 'developer-cta';
   section.setAttribute('aria-labelledby', 'developer-cta-title');
   section.innerHTML = `
     <div class="developer-cta__illustration">
-      <img src="/assets/images/home/developer-workspace.png" alt="" />
+      <img src="${illustrationPath}" alt="" />
     </div>
     <div class="developer-cta__card">
       <h2 class="developer-cta__title" id="developer-cta-title">Are You a Game Developer?</h2>

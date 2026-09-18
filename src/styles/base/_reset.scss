@@ -1,3 +1,5 @@
+@use '../abstracts/breakpoints' as *;
+
 *,
 *::before,
 *::after {
@@ -11,12 +13,12 @@ body {
 }
 
 html {
-  min-width: 375px;
+  min-width: $breakpoint-mobile-min;
   scroll-behavior: smooth;
 }
 
 body {
-  min-width: 375px;
+  min-width: $breakpoint-mobile-min;
 }
 
 button,

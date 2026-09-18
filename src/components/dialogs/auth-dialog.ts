@@ -3,9 +3,11 @@ import {
   type AuthMode,
   isAuthDialogRequestDetail,
 } from './auth-dialog-events';
+import { getAppPath } from '../../utils/paths';
 import './auth-dialog.scss';
 
 const DIALOG_TRANSITION_DURATION_MS: number = 240;
+const googleIconPath: string = getAppPath('/assets/icons/google.svg');
 
 const loginPanelMarkup: string = `
   <section class="auth-panel auth-panel--active" data-auth-panel="login" aria-labelledby="login-title">
@@ -42,7 +44,7 @@ const loginPanelMarkup: string = `
         <button class="btn btn--primary btn--large auth-form__submit" type="submit">Login</button>
         <div class="auth-divider"><span>or</span></div>
         <button class="auth-google-button" type="button">
-          <img src="/assets/icons/google.svg" alt="" width="24" height="24" />
+          <img src="${googleIconPath}" alt="" width="24" height="24" />
           Continue with Google
         </button>
       </div>
@@ -101,7 +103,7 @@ const registerPanelMarkup: string = `
         <button class="btn btn--primary btn--large auth-form__submit" type="submit">Create Account</button>
         <div class="auth-divider"><span>or</span></div>
         <button class="auth-google-button" type="button">
-          <img src="/assets/icons/google.svg" alt="" width="24" height="24" />
+          <img src="${googleIconPath}" alt="" width="24" height="24" />
           Sign up with Google
         </button>
       </div>

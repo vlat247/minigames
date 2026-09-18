@@ -26,7 +26,7 @@ export class Router {
   };
 
   private readonly renderCurrentRoute = (): void => {
-    const currentPath: string = globalThis.location.pathname;
+    const currentPath: string = getRoutePath(globalThis.location.pathname);
     const matchedRoute: Route | undefined = this.routes.find(
       (route: Route): boolean => route.path === currentPath,
     );
@@ -59,7 +59,8 @@ export class Router {
   }
 
   public navigate(path: string): void {
-    globalThis.history.pushState(null, '', path);
+    const routePath: string = getRoutePath(path);
+    globalThis.history.pushState(null, '', getAppPath(routePath));
     this.renderCurrentRoute();
   }
 
@@ -69,3 +70,4 @@ export class Router {
     this.renderCurrentRoute();
   }
 }
+import { getAppPath, getRoutePath } from '../utils/paths';

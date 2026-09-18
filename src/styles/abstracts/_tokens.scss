@@ -15,6 +15,7 @@ $color-error: #d92d20;
 $color-success: #138a5b;
 $color-white: #ffffff;
 $color-black: #111111;
+$color-ink-hover: rgba(36, 33, 69, 0.08);
 $color-backdrop: rgba(17, 17, 17, 0.72);
 $color-hero-overlay: rgba(30, 27, 58, 0.65);
 
@@ -54,6 +55,7 @@ $carousel-height-desktop: 384px;
 $carousel-edge-mobile: 56px;
 $carousel-edge-tablet: 104px;
 $carousel-edge-desktop: 120px;
+$carousel-side-fluid-min: 200px;
 $carousel-side-desktop: 288px;
 $carousel-main-mobile: 218px;
 $carousel-main-tablet: 448px;
@@ -81,6 +83,8 @@ $dialog-viewport-gap: 32px;
 $form-control-height: 48px;
 $google-button-height: 50px;
 $dialog-motion-distance: 16px;
+$menu-icon-line-shift: 6px;
+$menu-icon-rotation: 45deg;
 
 // Typography.
 $font-family-primary: 'Inter', Arial, sans-serif;
@@ -98,6 +102,25 @@ $font-weight-regular: 400;
 $font-weight-medium: 500;
 $font-weight-semibold: 600;
 $font-weight-bold: 700;
+$line-height-solid: 1;
+$line-height-display: 1.1;
+$line-height-heading: 1.2;
+$line-height-body: 1.5;
+$line-height-icon: 0.5;
+$line-height-navigation: 1.0625;
+
+// Leaderboard columns mirror the proportional columns in the Figma frames.
+$leaderboard-mobile-rank-width: 18%;
+$leaderboard-mobile-player-width: 35%;
+$leaderboard-mobile-score-width: 25%;
+$leaderboard-mobile-streak-width: 22%;
+$leaderboard-tablet-rank-width: 12%;
+$leaderboard-tablet-player-width: 31%;
+$leaderboard-tablet-games-width: 19%;
+$leaderboard-tablet-score-width: 20%;
+$leaderboard-tablet-streak-width: 18%;
+$leaderboard-desktop-rank-width: 7%;
+$leaderboard-desktop-data-width: 18.6%;
 
 // Corners and borders.
 $radius-xs: 4px;
@@ -128,5 +151,6 @@ $shadow-dialog: 8px 8px 0 $color-black;
 $focus-ring: 0 0 0 3px rgba($color-tertiary, 0.18);
 $transition-fast: 160ms ease;
 $transition-default: 240ms ease;
+$motion-reduced-duration: 0.01ms;
 $z-index-header: 10;
 $z-index-menu: 100;
