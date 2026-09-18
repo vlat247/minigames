@@ -18,6 +18,12 @@
   }
 }
 
+@mixin above-tablet {
+  @media (min-width: ($breakpoint-tablet + 0.02px)) {
+    @content;
+  }
+}
+
 @mixin mobile-only {
   @media (max-width: ($breakpoint-tablet - 0.02px)) {
     @content;

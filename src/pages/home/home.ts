@@ -1,9 +1,13 @@
-export const homePage = (): string => {
-  return `
-    <div class="home-page">
-      <h1>Home Page</h1>
-      <p>Welcome to MiniGames!</p>
-      <a href="/about" data-link>Go to About (Not Found)</a>
-    </div>
-  `;
+import { createHeader } from '../../components/header/header';
+
+export const homePage = (): HTMLElement => {
+  const page: HTMLDivElement = document.createElement('div');
+  page.className = 'home-page';
+
+  const main: HTMLElement = document.createElement('main');
+  main.id = 'main-content';
+
+  page.append(createHeader(), main);
+
+  return page;
 };
