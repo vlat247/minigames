@@ -1,6 +1,7 @@
 import './section-heading.scss';
 
 interface SectionHeadingOptions {
+  compactTitle?: string;
   controls?: HTMLElement;
   id: string;
   title: string;
@@ -14,7 +15,14 @@ export const createSectionHeading = (
   heading.innerHTML = `
     <div class="section-heading__title-group">
       <span class="section-heading__accent" aria-hidden="true"></span>
-      <h2 class="section-heading__title" id="${options.id}">${options.title}</h2>
+      <h2 class="section-heading__title" id="${options.id}">
+        <span class="section-heading__title-full">${options.title}</span>
+        ${
+          options.compactTitle === undefined
+            ? ''
+            : `<span class="section-heading__title-compact">${options.compactTitle}</span>`
+        }
+      </h2>
     </div>
   `;
 
