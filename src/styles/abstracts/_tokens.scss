@@ -1,0 +1,83 @@
+// Colors exported from the MiniGames Figma variables.
+$color-background: #f9f8f3;
+$color-surface: #ffffff;
+$color-ink: #242145;
+$color-text: #5f5d75;
+$color-text-muted: #737380;
+$color-primary: #ffd02b;
+$color-primary-hover: #f4c20d;
+$color-tertiary: #3a2ebf;
+$color-footer: #1e1b3a;
+$color-footer-low: #2a264f;
+$color-footer-text: #b9b5c9;
+$color-outline: #e5e7eb;
+$color-error: #d92d20;
+$color-success: #138a5b;
+$color-white: #ffffff;
+$color-black: #111111;
+$color-backdrop: rgba(17, 17, 17, 0.72);
+
+// Spacing scale exported from Figma.
+$space-0-5: 4px;
+$space-1: 8px;
+$space-2: 16px;
+$space-3: 24px;
+$space-4: 32px;
+$space-5: 40px;
+$space-6: 48px;
+$space-8: 64px;
+$space-9: 72px;
+$space-10: 80px;
+$space-14: 112px;
+$space-15: 120px;
+
+// Layout.
+$layout-max-width: 1920px;
+$content-max-width: 1680px;
+$header-height-desktop: 85px;
+$header-height-compact: 72px;
+
+// Typography.
+$font-family-primary: 'Inter', Arial, sans-serif;
+$font-family-secondary: 'Roboto', Arial, sans-serif;
+$font-size-2xs: 12px;
+$font-size-xs: 14px;
+$font-size-sm: 16px;
+$font-size-md: 18px;
+$font-size-lg: 20px;
+$font-size-xl: 24px;
+$font-size-2xl: 32px;
+$font-size-3xl: 36px;
+$font-size-display: 56px;
+$font-weight-regular: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+// Corners and borders.
+$radius-xs: 4px;
+$radius-sm: 8px;
+$radius-md: 12px;
+$radius-lg: 16px;
+$radius-xl: 24px;
+$radius-round: 999px;
+$border-width-thin: 1px;
+$border-width-default: 2px;
+$border-width-card: 2.5px;
+$border-width-heavy: 3px;
+
+// Buttons.
+$button-padding-x: 20px;
+$button-padding-y: 10px;
+$button-large-padding-x: 24px;
+$button-large-padding-y: 16px;
+$button-height: 40px;
+$button-height-large: 52px;
+
+// Shadows and motion.
+$shadow-small: 4px 4px 0 $color-ink;
+$shadow-medium: 6px 6px 0 $color-ink;
+$shadow-large: 8px 8px 0 $color-ink;
+$shadow-button: 0 4px 0 $color-ink;
+$transition-fast: 160ms ease;
+$transition-default: 240ms ease;
