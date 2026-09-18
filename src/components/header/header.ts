@@ -94,11 +94,7 @@ export const createHeader = (): HTMLElement => {
       isOpen ? 'Close navigation menu' : 'Open navigation menu',
     );
 
-    if (isOpen) {
-      menu.querySelector<HTMLAnchorElement>('a')?.focus();
-    } else {
-      menuToggle.focus();
-    }
+    menuToggle.focus();
   };
 
   menuToggle.addEventListener('click', (): void => {
