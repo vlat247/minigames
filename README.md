@@ -24,3 +24,7 @@ npm run build
 ```
 
 The application targets the latest Google Chrome and is verified at 375px, 768px, and 1920px viewport widths.
+
+## Deployment
+
+The `story-1` branch is configured for GitHub Pages deployment at <https://vlat247.github.io/minigames/>. The workflow runs the full quality check before publishing the production build.
