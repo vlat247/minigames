@@ -2,6 +2,7 @@ import { createHeader } from '../../components/header/header';
 import { createHeroSection } from '../../components/hero/hero';
 import { createNewGamesSection } from '../../features/new-games/new-games';
 import { createLeaderboardSection } from '../../features/leaderboard/leaderboard';
+import { createDeveloperCta } from '../../components/developer-cta/developer-cta';
 
 export const homePage = (): HTMLElement => {
   const page: HTMLDivElement = document.createElement('div');
@@ -13,6 +14,7 @@ export const homePage = (): HTMLElement => {
     createHeroSection(),
     createNewGamesSection(),
     createLeaderboardSection(),
+    createDeveloperCta(),
   );
 
   page.append(createHeader(), main);
