@@ -1,0 +1,44 @@
+@use '../abstracts/breakpoints' as *;
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  min-width: $breakpoint-mobile-min;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: $breakpoint-mobile-min;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  padding: 0;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

@@ -1,0 +1,314 @@
+@use '../../styles/abstracts/tokens' as *;
+@use '../../styles/abstracts/mixins' as *;
+
+.material-symbols-rounded {
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 20;
+}
+
+.auth-dialog {
+  width: min($auth-dialog-width, calc(100% - #{$dialog-viewport-gap}));
+  max-width: $auth-dialog-width;
+  max-height: calc(100dvh - #{$dialog-viewport-gap});
+  margin: auto;
+  padding: $space-3;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: $border-width-heavy solid $color-ink;
+  border-radius: $radius-lg;
+  background: $color-background;
+  box-shadow: $shadow-dialog;
+  color: $color-ink;
+  opacity: 0;
+  transform: translateY($dialog-motion-distance) scale(0.98);
+  transition:
+    opacity $transition-default,
+    transform $transition-default;
+
+  &::backdrop {
+    background: $color-backdrop;
+    opacity: 0;
+    transition: opacity $transition-default;
+  }
+
+  &--visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  &--visible::backdrop {
+    opacity: 1;
+  }
+
+  &--closing {
+    pointer-events: none;
+  }
+
+  &__panels {
+    margin-top: $space-3;
+  }
+
+  @include tablet-up {
+    padding: $space-4;
+    border-radius: $radius-xl;
+  }
+}
+
+.auth-tabs {
+  display: flex;
+  height: $form-control-height;
+  overflow: hidden;
+  border: $border-width-card solid $color-ink;
+  border-radius: $radius-md;
+  background: $color-surface;
+
+  button {
+    flex: 1;
+    border: 0;
+    border-radius: $radius-sm;
+    background: transparent;
+    color: $color-text;
+    font-weight: $font-weight-bold;
+    cursor: pointer;
+    transition:
+      background-color $transition-fast,
+      color $transition-fast;
+
+    &[aria-selected='true'] {
+      background: $color-footer-low;
+      color: $color-white;
+    }
+  }
+}
+
+.auth-panel {
+  flex-direction: column;
+  gap: $space-2-5;
+
+  &[hidden] {
+    display: none;
+  }
+
+  &--active {
+    display: flex;
+    animation: auth-panel-enter $transition-default both;
+  }
+
+  &__heading {
+    display: grid;
+    gap: $space-1;
+
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h2 {
+      font-size: $font-size-xl;
+      line-height: $line-height-heading;
+    }
+
+    p {
+      color: $color-text;
+      font-size: $font-size-xs;
+      line-height: normal;
+    }
+  }
+
+  &__footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $space-0-5;
+    justify-content: center;
+    margin: 0;
+    color: $color-text;
+    font-size: $font-size-xs;
+    line-height: normal;
+    text-align: center;
+
+    button {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: $color-ink;
+      font-weight: $font-weight-bold;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+  }
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: $space-3;
+
+  &__fields,
+  &__actions {
+    display: flex;
+    flex-direction: column;
+    gap: $space-2;
+  }
+
+  &__forgot {
+    align-self: flex-end;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: $color-ink;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-bold;
+    line-height: normal;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  &__submit {
+    width: 100%;
+    height: $button-height-large;
+    min-height: $button-height-large;
+    padding-block: 0;
+    border-width: $border-width-card;
+    border-radius: $radius-md;
+    box-shadow: $shadow-button;
+  }
+}
+
+.auth-field {
+  display: grid;
+  gap: $space-1;
+
+  label {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-bold;
+    line-height: normal;
+  }
+
+  &__control {
+    display: flex;
+    gap: $space-2;
+    align-items: center;
+    height: $form-control-height;
+    padding-inline: $space-2;
+    border: $border-width-default solid $color-ink;
+    border-radius: $radius-sm;
+    background: $color-surface;
+    color: $color-text;
+    transition:
+      border-color $transition-fast,
+      box-shadow $transition-fast;
+
+    &:focus-within {
+      border-color: $color-tertiary;
+      box-shadow: $focus-ring;
+    }
+
+    > .material-symbols-rounded {
+      flex: 0 0 auto;
+      font-size: $font-size-lg;
+    }
+
+    input {
+      min-width: 0;
+      flex: 1;
+      padding: 0;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: $color-ink;
+      font-size: $font-size-xs;
+      font-weight: $font-weight-medium;
+
+      &::placeholder {
+        color: $color-text;
+        opacity: 1;
+      }
+    }
+  }
+
+  &__visibility {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: $color-text;
+    cursor: pointer;
+  }
+}
+
+.auth-divider {
+  display: flex;
+  gap: $space-2;
+  align-items: center;
+  color: $color-text;
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+
+  &::before,
+  &::after {
+    flex: 1;
+    height: $border-width-default;
+    background: $color-outline;
+    content: '';
+  }
+}
+
+.auth-google-button {
+  display: flex;
+  gap: $space-2;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: $google-button-height;
+  border: $border-width-default solid $color-ink;
+  border-radius: $radius-md;
+  background: $color-surface;
+  color: $color-ink;
+  font-weight: $font-weight-bold;
+  line-height: normal;
+  cursor: pointer;
+  transition: background-color $transition-fast;
+}
+
+body.dialog-open {
+  overflow: hidden;
+}
+
+@include hover-capable {
+  .auth-tabs button:hover:not([aria-selected='true']),
+  .auth-google-button:hover {
+    background: $color-outline;
+  }
+
+  .auth-panel__footer button:hover,
+  .auth-form__forgot:hover {
+    color: $color-tertiary;
+  }
+}
+
+@keyframes auth-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateX($dialog-motion-distance);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-dialog,
+  .auth-dialog::backdrop,
+  .auth-panel--active {
+    transition-duration: $motion-reduced-duration;
+    animation-duration: $motion-reduced-duration;
+  }
+}

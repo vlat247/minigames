@@ -1,0 +1,167 @@
+@use '../../styles/abstracts/tokens' as *;
+@use '../../styles/abstracts/mixins' as *;
+
+.new-games {
+  padding: $space-2;
+  overflow: hidden;
+  background: $color-background;
+
+  &__controls {
+    display: none;
+    gap: $space-2;
+  }
+
+  &__arrow {
+    display: grid;
+    place-items: center;
+    width: $space-5;
+    height: $space-5;
+    border: $border-width-default solid $color-ink;
+    border-radius: $radius-sm;
+    background: $color-surface;
+    color: $color-ink;
+    font-size: $font-size-xl;
+    line-height: $line-height-solid;
+    cursor: pointer;
+    transition:
+      background-color $transition-fast,
+      transform $transition-fast;
+
+    &:active {
+      transform: translateY($border-width-default);
+    }
+  }
+
+  &__track {
+    display: grid;
+    grid-template-columns:
+      $carousel-edge-mobile minmax($carousel-main-mobile, 1fr)
+      $carousel-edge-mobile;
+    gap: $space-1;
+    margin-top: $space-2;
+  }
+
+  @include tablet-up {
+    padding: $space-3 $space-5;
+
+    &__controls {
+      display: flex;
+    }
+
+    &__arrow {
+      width: $space-5;
+      height: $space-5;
+    }
+
+    &__track {
+      grid-template-columns:
+        $carousel-edge-tablet minmax($carousel-main-tablet, 1fr)
+        $carousel-edge-tablet;
+      margin-top: $space-3;
+      padding-inline: $space-1;
+    }
+  }
+
+  @include desktop-up {
+    padding: $space-5 $space-15;
+
+    &__arrow {
+      width: $space-6;
+      height: $space-6;
+    }
+
+    &__track {
+      grid-template-columns:
+        minmax($carousel-edge-mobile, $carousel-edge-desktop)
+        minmax($carousel-side-fluid-min, $carousel-side-desktop)
+        minmax($carousel-main-tablet, $carousel-main-desktop)
+        minmax($carousel-side-fluid-min, $carousel-side-desktop)
+        minmax($carousel-edge-mobile, $carousel-edge-desktop);
+      justify-content: center;
+      margin-top: $space-5;
+    }
+  }
+}
+
+.game-card {
+  position: relative;
+  display: none;
+  height: $carousel-height-mobile;
+  overflow: hidden;
+  border: $border-width-card solid $color-ink;
+  border-radius: $radius-md;
+  background: $color-footer-low;
+  box-shadow: $shadow-small;
+  container-type: inline-size;
+
+  &--2,
+  &--3,
+  &--4 {
+    display: block;
+  }
+
+  &__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &__info {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: none;
+    gap: $space-1;
+    padding: $space-2;
+    background: $carousel-overlay;
+    color: $color-white;
+  }
+
+  &__title {
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    color: $color-white;
+    font-size: $font-size-md;
+    line-height: $line-height-heading;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: $color-footer-text;
+    font-size: $font-size-2xs;
+    font-weight: $font-weight-semibold;
+
+    span span {
+      color: $color-primary;
+    }
+  }
+
+  @container (min-width: #{$carousel-card-info-threshold}) {
+    &__info {
+      display: grid;
+    }
+  }
+
+  @include tablet-up {
+    height: $carousel-height-tablet;
+    border-radius: $radius-lg;
+  }
+
+  @include desktop-up {
+    display: block;
+    height: $carousel-height-desktop;
+    border-radius: $radius-xl;
+  }
+}
+
+@include hover-capable {
+  .new-games__arrow:hover {
+    background: $color-primary;
+  }
+}

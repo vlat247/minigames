@@ -1,0 +1,120 @@
+@use '../../styles/abstracts/tokens' as *;
+@use '../../styles/abstracts/mixins' as *;
+
+.hero {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  min-height: $hero-height-mobile;
+  padding: $space-8 $space-2;
+  overflow: hidden;
+  background: $color-hero-overlay;
+
+  &::before {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    background-image: url('/assets/images/home/hero-background.png');
+    background-position: center;
+    background-size: cover;
+    content: '';
+    opacity: $hero-image-opacity;
+  }
+
+  &__card {
+    display: flex;
+    flex-direction: column;
+    gap: $space-2;
+    width: 100%;
+    padding: $space-3;
+    border: $border-width-card solid $color-ink;
+    border-radius: $radius-md;
+    background: $color-background;
+    box-shadow: $shadow-small;
+  }
+
+  &__title,
+  &__description {
+    margin: 0;
+  }
+
+  &__title {
+    font-size: $font-size-xl;
+    line-height: $line-height-display;
+  }
+
+  &__description {
+    color: $color-text;
+    font-size: $font-size-2xs;
+    font-weight: $font-weight-medium;
+    line-height: $line-height-body;
+
+    &--full {
+      display: none;
+    }
+  }
+
+  &__button {
+    align-self: flex-start;
+    min-height: $button-height;
+    padding: $button-padding-y $button-padding-x;
+    font-size: $font-size-xs;
+  }
+
+  @include tablet-up {
+    min-height: $hero-height-tablet;
+    padding: $space-9 $space-5;
+
+    &__card {
+      width: $hero-card-width-tablet;
+      border-radius: $radius-lg;
+      box-shadow: $shadow-medium;
+    }
+
+    &__title {
+      font-size: $font-size-3xl;
+    }
+
+    &__description {
+      font-size: $font-size-xs;
+
+      &--compact {
+        display: none;
+      }
+
+      &--full {
+        display: block;
+      }
+    }
+  }
+
+  @include desktop-up {
+    min-height: $hero-height-desktop;
+    padding: $space-14 $space-15;
+
+    &__card {
+      gap: $space-3;
+      width: $hero-card-width-desktop;
+      padding: $space-6;
+      border-width: $border-width-heavy;
+      border-radius: $radius-xl;
+      box-shadow: $shadow-large;
+    }
+
+    &__title {
+      font-size: $font-size-display;
+    }
+
+    &__description {
+      font-size: $font-size-md;
+    }
+
+    &__button {
+      height: $button-height-large;
+      min-height: $button-height-large;
+      padding: 0 $button-large-padding-x;
+      font-size: $font-size-md;
+    }
+  }
+}

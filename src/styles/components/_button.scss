@@ -1,0 +1,60 @@
+@use '../abstracts/tokens' as *;
+@use '../abstracts/mixins' as *;
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: $button-height;
+  padding: $button-padding-y $button-padding-x;
+  border: $border-width-default solid transparent;
+  border-radius: $radius-sm;
+  color: $color-ink;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-solid;
+  cursor: pointer;
+  transition:
+    background-color $transition-fast,
+    color $transition-fast,
+    transform $transition-fast,
+    box-shadow $transition-fast;
+
+  &--primary {
+    background-color: $color-primary;
+    border-color: $color-ink;
+
+    @include hover-capable {
+      &:hover {
+        background-color: $color-primary-hover;
+      }
+    }
+  }
+
+  &--secondary {
+    background-color: transparent;
+    border-color: currentcolor;
+
+    @include hover-capable {
+      &:hover {
+        background-color: $color-ink-hover;
+      }
+    }
+  }
+
+  &:active {
+    transform: translateY($border-width-default);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  &--large {
+    min-height: $button-height-large;
+    padding: $button-large-padding-y $button-large-padding-x;
+    border-radius: $radius-sm;
+    font-size: $font-size-md;
+  }
+}

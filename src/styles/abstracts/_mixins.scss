@@ -1,0 +1,37 @@
+@use './breakpoints' as *;
+
+@mixin tablet-up {
+  @media (min-width: $breakpoint-tablet) {
+    @content;
+  }
+}
+
+@mixin desktop-up {
+  @media (min-width: $breakpoint-desktop) {
+    @content;
+  }
+}
+
+@mixin tablet-and-down {
+  @media (max-width: $breakpoint-tablet) {
+    @content;
+  }
+}
+
+@mixin above-tablet {
+  @media (min-width: ($breakpoint-tablet + $breakpoint-epsilon)) {
+    @content;
+  }
+}
+
+@mixin mobile-only {
+  @media (max-width: ($breakpoint-tablet - $breakpoint-epsilon)) {
+    @content;
+  }
+}
+
+@mixin hover-capable {
+  @media (hover: hover) and (pointer: fine) {
+    @content;
+  }
+}

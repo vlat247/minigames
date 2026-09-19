@@ -1,0 +1,121 @@
+@use '../../styles/abstracts/tokens' as *;
+@use '../../styles/abstracts/mixins' as *;
+
+.developer-cta {
+  display: grid;
+  gap: $space-2;
+  padding: $space-2;
+  background: $color-background;
+
+  &__illustration {
+    width: 100%;
+    height: $developer-image-height-mobile;
+    overflow: hidden;
+    border-radius: $radius-md;
+  }
+
+  &__illustration img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &__card {
+    display: flex;
+    flex-direction: column;
+    gap: $space-2;
+    padding: $space-3;
+    border: $border-width-card solid $color-ink;
+    border-radius: $radius-lg;
+    background: $color-tertiary;
+    box-shadow: $shadow-small;
+    color: $color-white;
+  }
+
+  &__title,
+  &__description,
+  &__contact {
+    margin: 0;
+  }
+
+  &__title {
+    color: $color-white;
+    font-size: $font-size-xl;
+    line-height: $line-height-heading;
+  }
+
+  &__description {
+    color: $color-footer-text;
+    font-size: $font-size-xs;
+    line-height: $line-height-body;
+  }
+
+  &__button {
+    align-self: flex-start;
+    gap: $space-1;
+  }
+
+  &__button-icon {
+    font-size: $font-size-xl;
+    line-height: $line-height-icon;
+  }
+
+  &__contact {
+    color: $color-footer-text;
+    font-size: $font-size-2xs;
+  }
+
+  @include tablet-up {
+    gap: $space-3;
+    padding: $space-3 $space-5;
+
+    &__illustration {
+      height: $developer-image-height-tablet;
+      border-radius: $radius-lg;
+    }
+
+    &__card {
+      gap: $space-3;
+      padding: $space-4;
+      border-radius: $radius-xl;
+      box-shadow: $shadow-medium;
+    }
+
+    &__title {
+      font-size: $font-size-2xl;
+    }
+
+    &__description {
+      font-size: $font-size-sm;
+    }
+
+    &__contact {
+      font-size: $font-size-xs;
+    }
+  }
+
+  @include desktop-up {
+    grid-template-columns: minmax(0, $developer-image-width-desktop) minmax(
+        0,
+        1fr
+      );
+    gap: $space-5;
+    align-items: center;
+    padding: $space-5 $space-15;
+
+    &__illustration {
+      height: $developer-image-height-desktop;
+      border-radius: $radius-xl;
+    }
+
+    &__card {
+      padding: $space-5;
+      border-width: $border-width-heavy;
+      box-shadow: $shadow-large;
+    }
+
+    &__description {
+      font-size: $font-size-md;
+    }
+  }
+}

@@ -1,0 +1,156 @@
+// Colors exported from the MiniGames Figma variables.
+$color-background: #f9f8f3;
+$color-surface: #ffffff;
+$color-ink: #242145;
+$color-text: #5f5d75;
+$color-text-muted: #737380;
+$color-primary: #ffd02b;
+$color-primary-hover: #f4c20d;
+$color-tertiary: #3a2ebf;
+$color-footer: #1e1b3a;
+$color-footer-low: #2a264f;
+$color-footer-text: #b9b5c9;
+$color-outline: #e5e7eb;
+$color-error: #d92d20;
+$color-success: #138a5b;
+$color-white: #ffffff;
+$color-black: #111111;
+$color-ink-hover: rgba(36, 33, 69, 0.08);
+$color-backdrop: rgba(17, 17, 17, 0.72);
+$color-hero-overlay: rgba(30, 27, 58, 0.65);
+
+// Spacing scale exported from Figma.
+$space-0-5: 4px;
+$space-1: 8px;
+$space-2: 16px;
+$space-2-5: 20px;
+$space-3: 24px;
+$space-4: 32px;
+$space-5: 40px;
+$space-6: 48px;
+$space-7: 56px;
+$space-8: 64px;
+$space-9: 72px;
+$space-10: 80px;
+$space-14: 112px;
+$space-15: 120px;
+
+// Layout.
+$layout-max-width: 1920px;
+$content-max-width: 1680px;
+$header-height-desktop: 85px;
+$header-height-compact: 72px;
+$hero-card-width-tablet: 480px;
+$hero-card-width-desktop: 640px;
+$hero-height-mobile: 413px;
+$hero-height-tablet: 451px;
+$hero-height-desktop: 627px;
+$hero-image-opacity: 0.2;
+// Container queries measure the content box; 283px plus 2 × 2.5px borders
+// equals the 288px rendered-card threshold from the Story 1 rubric.
+$carousel-card-info-threshold: 283px;
+$carousel-height-mobile: 200px;
+$carousel-height-tablet: 280px;
+$carousel-height-desktop: 384px;
+$carousel-edge-mobile: 56px;
+$carousel-edge-tablet: 104px;
+$carousel-edge-desktop: 120px;
+$carousel-side-fluid-min: 200px;
+$carousel-side-desktop: 288px;
+$carousel-main-mobile: 218px;
+$carousel-main-tablet: 448px;
+$carousel-main-desktop: 816px;
+$carousel-overlay: rgba(30, 27, 58, 0.9);
+$leaderboard-header-height: 67px;
+$leaderboard-row-height: 72px;
+$avatar-size: 40px;
+$avatar-size-compact: 32px;
+$color-avatar-green: #a3e2c9;
+$color-avatar-blue: #bce3ff;
+$color-avatar-pink: #ffc6ff;
+$color-avatar-lavender: #e8dff5;
+$developer-image-height-mobile: 227px;
+$developer-image-height-tablet: 300px;
+$developer-image-height-desktop: 483px;
+$developer-image-width-desktop: 682px;
+$footer-about-width: 400px;
+$footer-top-height-desktop: 151px;
+$footer-explore-width: 87px;
+$footer-company-width: 112px;
+$footer-community-width: 152px;
+$auth-dialog-width: 420px;
+$dialog-viewport-gap: 32px;
+$form-control-height: 48px;
+$google-button-height: 50px;
+$dialog-motion-distance: 16px;
+$menu-icon-line-shift: 6px;
+$menu-icon-rotation: 45deg;
+
+// Typography.
+$font-family-primary: 'Inter', Arial, sans-serif;
+$font-family-secondary: 'Roboto', Arial, sans-serif;
+$font-size-2xs: 12px;
+$font-size-xs: 14px;
+$font-size-sm: 16px;
+$font-size-md: 18px;
+$font-size-lg: 20px;
+$font-size-xl: 24px;
+$font-size-2xl: 32px;
+$font-size-3xl: 36px;
+$font-size-display: 56px;
+$font-weight-regular: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+$line-height-solid: 1;
+$line-height-display: 1.1;
+$line-height-heading: 1.2;
+$line-height-body: 1.5;
+$line-height-icon: 0.5;
+$line-height-navigation: 1.0625;
+
+// Leaderboard columns mirror the proportional columns in the Figma frames.
+$leaderboard-mobile-rank-width: 18%;
+$leaderboard-mobile-player-width: 35%;
+$leaderboard-mobile-score-width: 25%;
+$leaderboard-mobile-streak-width: 22%;
+$leaderboard-tablet-rank-width: 12%;
+$leaderboard-tablet-player-width: 31%;
+$leaderboard-tablet-games-width: 19%;
+$leaderboard-tablet-score-width: 20%;
+$leaderboard-tablet-streak-width: 18%;
+$leaderboard-desktop-rank-width: 7%;
+$leaderboard-desktop-data-width: 18.6%;
+
+// Corners and borders.
+$radius-xs: 4px;
+$radius-sm: 8px;
+$radius-md: 12px;
+$radius-lg: 16px;
+$radius-xl: 24px;
+$radius-round: 999px;
+$border-width-thin: 1px;
+$border-width-default: 2px;
+$border-width-card: 2.5px;
+$border-width-heavy: 3px;
+
+// Buttons.
+$button-padding-x: 20px;
+$button-padding-y: 10px;
+$button-large-padding-x: 24px;
+$button-large-padding-y: 16px;
+$button-height: 40px;
+$button-height-large: 52px;
+
+// Shadows and motion.
+$shadow-small: 4px 4px 0 $color-ink;
+$shadow-medium: 6px 6px 0 $color-ink;
+$shadow-large: 8px 8px 0 $color-ink;
+$shadow-button: 0 4px 0 $color-ink;
+$shadow-dialog: 8px 8px 0 $color-black;
+$focus-ring: 0 0 0 3px rgba($color-tertiary, 0.18);
+$transition-fast: 160ms ease;
+$transition-default: 240ms ease;
+$motion-reduced-duration: 0.01ms;
+$z-index-header: 10;
+$z-index-menu: 100;
