@@ -1,4 +1,12 @@
-export type RouteHandler = () => HTMLElement | string;
+import { getAppPath, getRoutePath } from '../utils/paths';
+
+export interface RouteView {
+  readonly content: Node;
+  readonly dispose?: () => void;
+}
+
+export type RouteHandler = () => RouteView;
+export type RouteChangeHandler = (path: string) => void;
 
 interface Route {
   handler: RouteHandler;
@@ -6,7 +14,13 @@ interface Route {
 }
 
 export class Router {
-  private readonly rootElement: HTMLElement;
+  private activeView: RouteView | undefined;
+
+  private isStarted: boolean = false;
+
+  private readonly outlet: HTMLElement;
+
+  private readonly routeChangeHandler: RouteChangeHandler | undefined;
 
   private readonly routes: Route[] = [];
 
@@ -39,19 +53,22 @@ export class Router {
       return;
     }
 
-    const content: HTMLElement | string = route.handler();
-    this.rootElement.replaceChildren();
+    const activePath: string = matchedRoute === undefined ? '' : currentPath;
+    this.activeView?.dispose?.();
+    this.activeView = undefined;
 
-    if (typeof content === 'string') {
-      this.rootElement.innerHTML = content;
-      return;
-    }
-
-    this.rootElement.append(content);
+    const nextView: RouteView = route.handler();
+    this.outlet.replaceChildren(nextView.content);
+    this.activeView = nextView;
+    this.routeChangeHandler?.(activePath);
   };
 
-  public constructor(rootElement: HTMLElement) {
-    this.rootElement = rootElement;
+  public constructor(
+    outlet: HTMLElement,
+    routeChangeHandler?: RouteChangeHandler,
+  ) {
+    this.outlet = outlet;
+    this.routeChangeHandler = routeChangeHandler;
   }
 
   public addRoute(path: string, handler: RouteHandler): void {
@@ -65,9 +82,26 @@ export class Router {
   }
 
   public start(): void {
+    if (this.isStarted) {
+      return;
+    }
+
+    this.isStarted = true;
     globalThis.addEventListener('popstate', this.renderCurrentRoute);
     document.addEventListener('click', this.handleDocumentClick);
     this.renderCurrentRoute();
   }
+
+  public stop(): void {
+    if (!this.isStarted) {
+      return;
+    }
+
+    globalThis.removeEventListener('popstate', this.renderCurrentRoute);
+    document.removeEventListener('click', this.handleDocumentClick);
+    this.activeView?.dispose?.();
+    this.activeView = undefined;
+    this.outlet.replaceChildren();
+    this.isStarted = false;
+  }
 }
-import { getAppPath, getRoutePath } from '../utils/paths';

@@ -9,6 +9,11 @@ import './auth-dialog.scss';
 const DIALOG_TRANSITION_DURATION_MS: number = 240;
 const googleIconPath: string = getAppPath('/assets/icons/google.svg');
 
+export interface AuthDialogController {
+  readonly destroy: () => void;
+  readonly element: HTMLDialogElement;
+}
+
 const loginPanelMarkup: string = `
   <section class="auth-panel auth-panel--active" data-auth-panel="login" aria-labelledby="login-title">
     <div class="auth-panel__heading">
@@ -116,8 +121,10 @@ const registerPanelMarkup: string = `
   </section>
 `;
 
-export const createAuthDialog = (): HTMLDialogElement => {
+export const createAuthDialog = (): AuthDialogController => {
   const dialog: HTMLDialogElement = document.createElement('dialog');
+  const eventController: AbortController = new AbortController();
+  const { signal } = eventController;
   dialog.className = 'auth-dialog';
   dialog.setAttribute('aria-label', 'Account access');
   dialog.innerHTML = `
@@ -147,11 +154,17 @@ export const createAuthDialog = (): HTMLDialogElement => {
     loginTab === null ||
     registerTab === null
   ) {
-    return dialog;
+    return {
+      destroy: (): void => {
+        eventController.abort();
+      },
+      element: dialog,
+    };
   }
 
   let returnFocusElement: HTMLElement | null = null;
   let closeTimer: number | undefined;
+  let openAnimationFrame: number | undefined;
 
   loginPanel.id = 'login-panel';
   loginPanel.setAttribute('role', 'tabpanel');
@@ -175,6 +188,7 @@ export const createAuthDialog = (): HTMLDialogElement => {
   };
 
   const finishClose = (): void => {
+    closeTimer = undefined;
     if (!dialog.open) {
       return;
     }
@@ -204,9 +218,19 @@ export const createAuthDialog = (): HTMLDialogElement => {
       globalThis.clearTimeout(closeTimer);
       closeTimer = undefined;
     }
+    if (openAnimationFrame !== undefined) {
+      globalThis.cancelAnimationFrame(openAnimationFrame);
+      openAnimationFrame = undefined;
+    }
 
     setMode(mode);
     if (dialog.open) {
+      dialog.classList.remove('auth-dialog--closing');
+      document.body.classList.add('dialog-open');
+      openAnimationFrame = globalThis.requestAnimationFrame((): void => {
+        dialog.classList.add('auth-dialog--visible');
+        openAnimationFrame = undefined;
+      });
       return;
     }
 
@@ -216,103 +240,141 @@ export const createAuthDialog = (): HTMLDialogElement => {
         : null;
     dialog.showModal();
     document.body.classList.add('dialog-open');
-    globalThis.requestAnimationFrame((): void => {
+    openAnimationFrame = globalThis.requestAnimationFrame((): void => {
       dialog.classList.add('auth-dialog--visible');
+      openAnimationFrame = undefined;
     });
   };
 
-  dialog.addEventListener('click', (event: MouseEvent): void => {
-    if (!(event.target instanceof Element)) {
-      return;
-    }
-
-    const viewButton: HTMLButtonElement | null = event.target.closest(
-      'button[data-auth-view]',
-    );
-    if (viewButton !== null) {
-      setMode(
-        viewButton.dataset.authView === 'register' ? 'register' : 'login',
-      );
-      return;
-    }
-
-    const visibilityButton: HTMLButtonElement | null = event.target.closest(
-      'button[data-password-target]',
-    );
-    if (visibilityButton !== null) {
-      const targetId: string | undefined =
-        visibilityButton.dataset.passwordTarget;
-      const passwordInput: HTMLInputElement | null = targetId
-        ? dialog.querySelector(`#${targetId}`)
-        : null;
-
-      if (passwordInput !== null) {
-        const shouldShowPassword: boolean = passwordInput.type === 'password';
-        passwordInput.type = shouldShowPassword ? 'text' : 'password';
-        visibilityButton.setAttribute(
-          'aria-label',
-          shouldShowPassword ? 'Hide password' : 'Show password',
-        );
-        const icon: HTMLElement | null = visibilityButton.querySelector(
-          '.material-symbols-rounded',
-        );
-        if (icon !== null) {
-          icon.textContent = shouldShowPassword
-            ? 'visibility_off'
-            : 'visibility';
-        }
+  dialog.addEventListener(
+    'click',
+    (event: MouseEvent): void => {
+      if (!(event.target instanceof Element)) {
+        return;
       }
-      return;
-    }
 
-    if (event.target !== dialog) {
-      return;
-    }
+      const viewButton: HTMLButtonElement | null = event.target.closest(
+        'button[data-auth-view]',
+      );
+      if (viewButton !== null) {
+        setMode(
+          viewButton.dataset.authView === 'register' ? 'register' : 'login',
+        );
+        return;
+      }
 
-    const bounds: DOMRect = dialog.getBoundingClientRect();
-    const isInsideDialog: boolean =
-      event.clientX >= bounds.left &&
-      event.clientX <= bounds.right &&
-      event.clientY >= bounds.top &&
-      event.clientY <= bounds.bottom;
-    if (!isInsideDialog) {
+      const visibilityButton: HTMLButtonElement | null = event.target.closest(
+        'button[data-password-target]',
+      );
+      if (visibilityButton !== null) {
+        const targetId: string | undefined =
+          visibilityButton.dataset.passwordTarget;
+        const passwordInput: HTMLInputElement | null = targetId
+          ? dialog.querySelector(`#${targetId}`)
+          : null;
+
+        if (passwordInput !== null) {
+          const shouldShowPassword: boolean = passwordInput.type === 'password';
+          passwordInput.type = shouldShowPassword ? 'text' : 'password';
+          visibilityButton.setAttribute(
+            'aria-label',
+            shouldShowPassword ? 'Hide password' : 'Show password',
+          );
+          const icon: HTMLElement | null = visibilityButton.querySelector(
+            '.material-symbols-rounded',
+          );
+          if (icon !== null) {
+            icon.textContent = shouldShowPassword
+              ? 'visibility_off'
+              : 'visibility';
+          }
+        }
+        return;
+      }
+
+      if (event.target !== dialog) {
+        return;
+      }
+
+      const bounds: DOMRect = dialog.getBoundingClientRect();
+      const isInsideDialog: boolean =
+        event.clientX >= bounds.left &&
+        event.clientX <= bounds.right &&
+        event.clientY >= bounds.top &&
+        event.clientY <= bounds.bottom;
+      if (!isInsideDialog) {
+        closeDialog();
+      }
+    },
+    { signal },
+  );
+
+  dialog.addEventListener(
+    'cancel',
+    (event: Event): void => {
+      event.preventDefault();
       closeDialog();
-    }
-  });
+    },
+    { signal },
+  );
 
-  dialog.addEventListener('cancel', (event: Event): void => {
-    event.preventDefault();
-    closeDialog();
-  });
+  dialog.addEventListener(
+    'keydown',
+    (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') {
+        return;
+      }
 
-  dialog.addEventListener('keydown', (event: KeyboardEvent): void => {
-    if (event.key !== 'Escape') {
-      return;
-    }
-
-    event.preventDefault();
-    closeDialog();
-  });
+      event.preventDefault();
+      closeDialog();
+    },
+    { signal },
+  );
 
   const forms: NodeListOf<HTMLFormElement> =
     dialog.querySelectorAll<HTMLFormElement>('form');
   for (const form of forms) {
-    form.addEventListener('submit', (event: SubmitEvent): void => {
-      event.preventDefault();
-    });
+    form.addEventListener(
+      'submit',
+      (event: SubmitEvent): void => {
+        event.preventDefault();
+      },
+      { signal },
+    );
   }
 
-  document.addEventListener(AUTH_DIALOG_OPEN_EVENT, (event: Event): void => {
-    if (!(event instanceof CustomEvent)) {
-      return;
-    }
+  document.addEventListener(
+    AUTH_DIALOG_OPEN_EVENT,
+    (event: Event): void => {
+      if (!(event instanceof CustomEvent)) {
+        return;
+      }
 
-    const customEvent: CustomEvent<unknown> = event as CustomEvent<unknown>;
-    const detail: unknown = customEvent.detail;
-    if (isAuthDialogRequestDetail(detail)) {
-      openDialog(detail.mode);
-    }
-  });
+      const customEvent: CustomEvent<unknown> = event as CustomEvent<unknown>;
+      const detail: unknown = customEvent.detail;
+      if (isAuthDialogRequestDetail(detail)) {
+        openDialog(detail.mode);
+      }
+    },
+    { signal },
+  );
 
-  return dialog;
+  return {
+    destroy: (): void => {
+      eventController.abort();
+      if (closeTimer !== undefined) {
+        globalThis.clearTimeout(closeTimer);
+      }
+      if (openAnimationFrame !== undefined) {
+        globalThis.cancelAnimationFrame(openAnimationFrame);
+      }
+      if (dialog.open) {
+        dialog.close();
+      }
+      dialog.classList.remove('auth-dialog--closing', 'auth-dialog--visible');
+      document.body.classList.remove('dialog-open');
+      returnFocusElement = null;
+    },
+    element: dialog,
+  };
 };
