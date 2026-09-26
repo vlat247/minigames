@@ -6,6 +6,13 @@ import {
 } from '../dialogs/auth-dialog-events';
 import { getAppPath } from '../../utils/paths';
 
+export interface HeaderController {
+  readonly closeMenu: () => void;
+  readonly destroy: () => void;
+  readonly element: HTMLElement;
+  readonly setActivePath: (path: string) => void;
+}
+
 const dispatchAuthRequest = (mode: AuthMode): void => {
   const event: CustomEvent<AuthDialogRequestDetail> =
     new CustomEvent<AuthDialogRequestDetail>(AUTH_DIALOG_OPEN_EVENT, {
@@ -15,10 +22,12 @@ const dispatchAuthRequest = (mode: AuthMode): void => {
   document.dispatchEvent(event);
 };
 
-export const createHeader = (): HTMLElement => {
+export const createHeader = (): HeaderController => {
   const homePath: string = getAppPath('/');
   const logoPath: string = getAppPath('/assets/icons/logo.png');
   const header: HTMLElement = document.createElement('header');
+  const eventController: AbortController = new AbortController();
+  const { signal } = eventController;
   header.className = 'site-header';
   header.innerHTML = `
     <div class="site-header__inner">
@@ -28,8 +37,8 @@ export const createHeader = (): HTMLElement => {
       </a>
 
       <nav class="site-header__desktop-nav" aria-label="Primary navigation">
-        <a class="site-header__nav-link site-header__nav-link--active" href="${homePath}" data-link>Home</a>
-        <a class="site-header__nav-link" href="${homePath}" data-link>Library</a>
+        <a class="site-header__nav-link" href="${homePath}" data-link data-nav-path="/">Home</a>
+        <a class="site-header__nav-link" href="${homePath}" data-link data-nav-path="/library">Library</a>
         <a class="site-header__nav-link" href="${homePath}" data-link>Tournaments</a>
         <a class="site-header__nav-link" href="${homePath}" data-link>Community</a>
       </nav>
@@ -62,8 +71,8 @@ export const createHeader = (): HTMLElement => {
       </a>
 
       <nav class="mobile-menu__nav" aria-label="Mobile navigation">
-        <a class="mobile-menu__link mobile-menu__link--active" href="${homePath}" data-link>Home</a>
-        <a class="mobile-menu__link" href="${homePath}" data-link>Library</a>
+        <a class="mobile-menu__link" href="${homePath}" data-link data-nav-path="/">Home</a>
+        <a class="mobile-menu__link" href="${homePath}" data-link data-nav-path="/library">Library</a>
         <a class="mobile-menu__link" href="${homePath}" data-link>Tournaments</a>
         <a class="mobile-menu__link" href="${homePath}" data-link>Community</a>
       </nav>
@@ -75,18 +84,51 @@ export const createHeader = (): HTMLElement => {
     </div>
   `;
 
+  const navigationLinks: NodeListOf<HTMLAnchorElement> =
+    header.querySelectorAll<HTMLAnchorElement>('a[data-nav-path]');
+  const setActivePath = (path: string): void => {
+    for (const link of navigationLinks) {
+      const isActive: boolean = link.dataset.navPath === path;
+      link.classList.toggle(
+        'site-header__nav-link--active',
+        isActive && link.classList.contains('site-header__nav-link'),
+      );
+      link.classList.toggle(
+        'mobile-menu__link--active',
+        isActive && link.classList.contains('mobile-menu__link'),
+      );
+
+      link.toggleAttribute('aria-current', isActive);
+      if (isActive) {
+        link.ariaCurrent = 'page';
+      }
+    }
+  };
+
   const menu: HTMLElement | null = header.querySelector('.mobile-menu');
   const menuToggle: HTMLButtonElement | null = header.querySelector(
     '.site-header__menu-toggle',
   );
 
   if (menu === null || menuToggle === null) {
-    return header;
+    return {
+      closeMenu: (): void => {
+        document.body.classList.remove('menu-open');
+      },
+      destroy: (): void => {
+        eventController.abort();
+      },
+      element: header,
+      setActivePath,
+    };
   }
 
   menu.inert = true;
 
-  const setMenuOpen = (isOpen: boolean): void => {
+  const setMenuOpen = (
+    isOpen: boolean,
+    shouldRestoreFocus: boolean = true,
+  ): void => {
     header.classList.toggle('site-header--menu-open', isOpen);
     document.body.classList.toggle('menu-open', isOpen);
     menu.setAttribute('aria-hidden', String(!isOpen));
@@ -97,42 +139,82 @@ export const createHeader = (): HTMLElement => {
       isOpen ? 'Close navigation menu' : 'Open navigation menu',
     );
 
-    menuToggle.focus();
+    if (shouldRestoreFocus) {
+      menuToggle.focus();
+    }
   };
 
-  menuToggle.addEventListener('click', (): void => {
-    const isOpen: boolean = menuToggle.getAttribute('aria-expanded') === 'true';
-    setMenuOpen(!isOpen);
-  });
+  const closeMenu = (): void => {
+    setMenuOpen(false, false);
+  };
 
-  header.addEventListener('click', (event: MouseEvent): void => {
-    if (!(event.target instanceof Element)) {
-      return;
-    }
+  menuToggle.addEventListener(
+    'click',
+    (): void => {
+      const isOpen: boolean =
+        menuToggle.getAttribute('aria-expanded') === 'true';
+      setMenuOpen(!isOpen);
+    },
+    { signal },
+  );
 
-    const authButton: HTMLButtonElement | null = event.target.closest(
-      'button[data-auth-mode]',
-    );
-    if (authButton !== null) {
-      const mode: AuthMode =
-        authButton.dataset.authMode === 'register' ? 'register' : 'login';
-      if (menuToggle.getAttribute('aria-expanded') === 'true') {
+  header.addEventListener(
+    'click',
+    (event: MouseEvent): void => {
+      if (!(event.target instanceof Element)) {
+        return;
+      }
+
+      const authButton: HTMLButtonElement | null = event.target.closest(
+        'button[data-auth-mode]',
+      );
+      if (authButton !== null) {
+        const mode: AuthMode =
+          authButton.dataset.authMode === 'register' ? 'register' : 'login';
+        if (menuToggle.getAttribute('aria-expanded') === 'true') {
+          setMenuOpen(false);
+        }
+        dispatchAuthRequest(mode);
+        return;
+      }
+
+      if (event.target.closest('.mobile-menu__link') !== null) {
         setMenuOpen(false);
       }
-      dispatchAuthRequest(mode);
-      return;
-    }
+    },
+    { signal },
+  );
 
-    if (event.target.closest('.mobile-menu__link') !== null) {
-      setMenuOpen(false);
-    }
-  });
+  document.addEventListener(
+    'keydown',
+    (event: KeyboardEvent): void => {
+      if (event.key === 'Escape' && menuToggle.ariaExpanded === 'true') {
+        setMenuOpen(false);
+      }
+    },
+    { signal },
+  );
 
-  document.addEventListener('keydown', (event: KeyboardEvent): void => {
-    if (event.key === 'Escape' && menuToggle.ariaExpanded === 'true') {
-      setMenuOpen(false);
-    }
-  });
+  globalThis.addEventListener(
+    'resize',
+    (): void => {
+      if (
+        menuToggle.ariaExpanded === 'true' &&
+        globalThis.getComputedStyle(menu).display === 'none'
+      ) {
+        closeMenu();
+      }
+    },
+    { signal },
+  );
 
-  return header;
+  return {
+    closeMenu,
+    destroy: (): void => {
+      closeMenu();
+      eventController.abort();
+    },
+    element: header,
+    setActivePath,
+  };
 };
