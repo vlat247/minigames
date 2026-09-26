@@ -3,6 +3,7 @@ import { getAppPath } from '../../utils/paths';
 
 export const createFooter = (): HTMLElement => {
   const homePath: string = getAppPath('/');
+  const libraryPath: string = getAppPath('/library');
   const logoPath: string = getAppPath('/assets/icons/logo.png');
   const iconSpritePath: string = getAppPath('/icons.svg');
   const footer: HTMLElement = document.createElement('footer');
@@ -23,7 +24,7 @@ export const createFooter = (): HTMLElement => {
         <div class="site-footer__link-group">
           <h2>Explore</h2>
           <a href="${homePath}" data-link>Home</a>
-          <a href="${homePath}" data-link>Library</a>
+          <a href="${libraryPath}" data-link>Library</a>
           <a href="${homePath}" data-link>Categories</a>
           <a href="${homePath}" data-link>Tournaments</a>
         </div>

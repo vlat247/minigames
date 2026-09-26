@@ -1,0 +1,163 @@
+Scope
+
+- In: all Story 1 requirements—tooling, folder structure, SPA foundation, Home page, static slider, mobile menu, Auth dialog, semantic validation, assets, deployment, and PR workflow.
+- Out: Library page, Game Details dialog, functional slider navigation, API integration, real authentication, validation errors, filtering, pagination, and unit tests.
+  Action items
+- Correct the Git and PR workflow before adding substantial layout work.
+  - Back up the current story-1 and feat/home-page-layout branch tips.
+  - Because story-1 and chore/project-setup currently point to the same commit and no setup PR exists, recreate story-1 from main while the project is still small.
+  - Open and merge chore/project-setup → story-1.
+  - Rebase feat/home-page-layout onto the resulting story-1 if necessary.
+  - Create a separate fix/project-tooling branch for the detailed tooling corrections found below.
+  - Implement Auth on a separate feat/auth-dialog branch.
+  - Merge task PRs into story-1; leave only the final story-1 → main PR unmerged.
+  - Make incremental commits for individual blocks. Large Home/Auth bulk commits are explicitly forbidden.
+  - Keep all new commit names lowercase, present-tense, imperative Conventional Commits. The official guide permits history correction with --force-with-lease before submission. RS School Git convention.
+- Replace the current PR template with the official RS structure.
+  - The current custom template does not satisfy the detailed criterion.
+  - Include the mandatory fields:
+    1. Task URL.
+    2. Screenshot.
+    3. Deployment URL.
+    4. Completion date and deadline.
+    5. Full self-check with expected score.
+  - Additional testing and responsive-check sections may be added, but the official base must remain.
+  - Use the same structure in the final Cross-Check PR. Official PR requirements.
+- Refactor toward the supplied page-first folder structure.
+  - Move application startup from src/main.ts to src/app/index.ts.
+  - Move src/core/router.ts to src/app/router.ts.
+  - Rename the Home files to:
+    - src/pages/home/home-page.ts
+    - src/pages/home/home-page.scss
+  - Add Story 1 component directories:
+    - src/components/header/
+    - src/components/footer/
+    - src/components/dialogs/auth-dialog/
+    - src/components/hero/
+    - src/components/leaderboard/
+    - src/components/game-developer/
+  - Add the static slider under:
+    - src/features/slider/slider.ts
+    - src/features/slider/slider.scss
+  - Add shared typed data under src/data/ and reusable DOM/format helpers under src/utils/.
+  - Consolidate shared styles under src/styles/, while keeping tokens, mixins/functions, globals, and component styles separated.
+  - Add src/assets/images/games/ and src/assets/icons/.
+  - Do not create empty services, state, Library, or Game Details modules yet; add them in their corresponding later stories.
+  - The official structure is illustrative rather than mandatory, but separation of pages, routing, reusable UI, features, assets, and utilities is required. Folder-structure criteria.
+- Complete the repository and development-tooling criteria.
+  - Add a meaningful description, setup commands, scripts, structure, Story 1 scope, and deployment link to [README.md](/Users/vlat247/Desktop/coding/RS-school/minigames/README.md).
+  - Keep Vite for development and production builds.
+  - Set "strict": true and "noImplicitAny": true in TypeScript.
+  - Explicitly type function inputs, outputs, variables where necessary, event handlers, and component data.
+  - Actively use interfaces for games, leaderboard entries, routes, and component configuration.
+  - Do not use explicit any.
+  - Add eslint-plugin-unicorn and enable the Unicorn recommended/style rules required by the rubric.
+  - Configure ESLint with noInlineConfig: true and enforce @typescript-eslint/no-explicit-any.
+  - Ignore dist, node_modules, and generated files so npm run lint no longer reports errors from the bundle.
+  - Make the lint command reject warnings using --max-warnings 0.
+  - Keep the working Prettier configuration and format script.
+  - Remove unused [src/style.css](/Users/vlat247/Desktop/coding/RS-school/minigames/src/style.css).
+  - The exact TypeScript and ESLint requirements are documented in the TypeScript criterion and ESLint criterion.
+- Replace the incomplete Husky setup with the required hooks.
+  - Keep the existing pre-commit/lint-staged hook as an optional extra.
+  - Add a commit-msg hook that rejects commit names that do not follow the RS Conventional Commit format.
+  - Add a pre-push hook that runs:
+    - ESLint with zero warnings allowed.
+    - Prettier in check mode.
+  - Ensure a failed or warning-producing check aborts the push.
+  - Test the commit hook with one valid and one invalid temporary message.
+  - Test the push hook after intentionally creating and then removing a harmless formatting problem.
+  - These two hooks—not merely a pre-commit formatter—are explicitly required. Husky acceptance criteria.
+- Correct the SPA bootstrap and build the design-token system.
+  - Change index.html so the static <body> contains only the module script.
+  - Create the root application element from TypeScript during bootstrap; the current static <div id="app"> violates the detailed SPA criterion.
+  - Continue generating all visible page markup from TypeScript.
+  - Retain a single-page router, Home route, and fallback route without implementing Story 4 URL state.
+  - Extract Figma colors, sizes, typography, shadows, radii, button dimensions, spacing, and breakpoints into Sass tokens.
+  - Keep Sass functions and mixins in separate shared files.
+  - Replace reusable magic values with named tokens.
+  - For unavoidable Pixel Perfect corrections, use token calculations or add a short comment explaining why a manual value is required.
+  - Ensure the tablet/mobile menu breakpoint includes exactly 768px.
+  - The relevant details are in the SPA criterion and Sass/token criterion.
+- Import and organize the official project assets and static data.
+  - Download the official MiniGames assets.
+  - The package contains 24 card images and 24 corresponding hero images.
+  - Place the required files under src/assets/images/games/ and import them through TypeScript/Vite.
+  - Create typed static game data from all-games-seed.json.
+  - Use featured games for the Story 1 carousel according to Figma.
+  - Create typed static leaderboard data from the official five-row leaderboard.json.
+  - Do not make API requests in Story 1.
+  - Keep asset names aligned with their official slugs to simplify future API integration.
+  - Use images only for game artwork; do not export card overlays, text, controls, backgrounds, or whole sections as images.
+- Implement the Header and full-screen mobile menu.
+  - Build the unauthenticated header at 375px, 768px, and 1920px.
+  - Point all navigation links to Home during Story 1.
+  - Make the Login / Sign up control open the Auth dialog.
+  - Show the burger at widths up to and including 768px.
+  - Hide it on desktop.
+  - Make the mobile menu cover all available screen space.
+  - Animate opening and closing.
+  - Animate the burger icon into a close icon, including the Figma-required color/state change.
+  - Support closing with the transformed close button and Escape.
+  - Ensure mobile Auth buttons close the menu and open the Auth dialog in one interaction.
+  - Prevent horizontal overflow during both opening and closing animations.
+  - Add aria-expanded, aria-controls, accessible names, keyboard focus, and body-scroll management.
+  - Follow the exact Header criteria and Burger menu criteria.
+- Implement all static Home page sections.
+  - Hero:
+    - Match all three Figma layouts.
+    - Include the designed button.
+    - Leave the button non-functional in Story 1.
+  - Carousel:
+    - Render the static game cards from typed official data.
+    - At a rendered width of 288px or wider, show the bottom overlay with title, likes, and rating.
+    - Truncate overflowing titles to one line with an ellipsis.
+    - Below 288px card width, show only the image—no title, rating, likes, icons, or overlay.
+    - Render arrows and indicators exactly as designed, but keep them non-functional.
+  - Leaderboard:
+    - Use the five official leaderboard rows.
+    - Use a semantic table with proper headers and scopes.
+    - Do not add interaction or interactive states.
+  - Developer CTA:
+    - Match Figma and include the button.
+    - Leave the button non-functional.
+  - Footer:
+    - Point navigation and social-icon links to Home for Story 1.
+    - Link the course control to RS School Short Track.
+    - Link the developer control to https://github.com/vlat247.
+    - Match all three breakpoints and fluid widths.
+  - Use one logical heading hierarchy and semantic sections throughout.
+- Implement the Auth dialog exactly to the detailed criteria.
+  - Open the same dialog from desktop and mobile Login / Sign up controls.
+  - Close the mobile menu when Auth is opened from it.
+  - Center the dialog in the viewport and render a dimmed backdrop.
+  - Set the dialog width to exactly 420px at tablet and desktop breakpoints.
+  - Allow the mobile dialog to adapt to the 375px viewport without horizontal scrolling.
+  - Animate both opening and closing.
+  - Close through backdrop click and Escape in both Login and Registration variants.
+  - Add Login/Registration tabs with visually distinct active/inactive states.
+  - Animate transitions between Login and Registration blocks.
+  - Make the inline Register and Login form links perform the same switch.
+  - Keep the dialog open during switching and do not reload the page.
+  - Use semantic forms and correct email, password, and other required input types.
+  - Implement only the default, focus, and other states visible in Figma.
+  - Do not implement validation-error states yet; the rubric explicitly postpones them.
+  - Add focus management and restore focus to the trigger when dismissed.
+  - Reference the official Auth criteria group.
+- Validate, deploy, and prepare the final submission.
+  - Run npm run lint with zero errors and zero warnings.
+  - Run npm run format:check.
+  - Run npx tsc --noEmit.
+  - Run npm run build and test the production output.
+  - Test at exactly 375px, 768px, and 1920px using PerfectPixel at scale 1 and 100% browser/OS zoom.
+  - Keep every independently checked section within the allowed 10px deviation.
+  - Drag continuously from 1920px down to 375px and remove all horizontal overflow.
+  - Test mobile hover behavior using the DevTools mobile device type.
+  - Validate the static document and the rendered Home, Auth-open, and mobile-menu-open DOM states with the W3C validator; require no errors or warnings.
+  - Verify the existing favicon is visible.
+  - Audit for explicit any, console.log, magic values, disabled lint rules, prohibited libraries, commented-out code, and layout screenshots.
+  - Deploy publicly and confirm it works in an incognito Chrome window.
+  - Open story-1 → main, include the official task URL, screenshots, deployment URL, dates, and a 294-point self-check.
+  - Do not merge the final PR; submit that PR URL in RS App.
+    Open questions
+- None blocking. The official assets, structure guidance, mock data, Story 1 subtasks, PR format, and Git workflow are now identified.
