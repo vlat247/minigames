@@ -422,6 +422,13 @@
     }
   }
 
+  &__author {
+    margin: 0;
+    color: inherit;
+    font-size: inherit;
+    line-height: inherit;
+  }
+
   p {
     margin: $space-1 0;
     color: $color-text;

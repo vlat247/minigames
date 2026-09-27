@@ -347,8 +347,8 @@ const createGameCard = (game: LibraryGame): HTMLElement => {
       <p class="library-card__description">${game.description}</p>
       <div class="library-card__footer">
         <div class="library-card__stats">
-          <span aria-label="Rated ${game.rating} out of 5"><span class="library-card__rating" aria-hidden="true">★</span> ${game.rating}</span>
-          <span aria-label="${game.likes} likes"><span class="library-card__likes" aria-hidden="true">♡</span> ${game.likes}</span>
+          <span role="img" aria-label="Rated ${game.rating} out of 5"><span class="library-card__rating" aria-hidden="true">★</span> ${game.rating}</span>
+          <span role="img" aria-label="${game.likes} likes"><span class="library-card__likes" aria-hidden="true">♡</span> ${game.likes}</span>
         </div>
         <button class="btn btn--primary library-card__details" type="button" data-game-slug="${game.slug}">Details</button>
       </div>
@@ -467,7 +467,7 @@ export const libraryPage = (): RouteView => {
         <p>Browse our collection of casual mini-games</p>
       </header>
       <div class="library__controls"></div>
-      <div class="library__games" aria-label="Available games"></div>
+      <div class="library__games" role="region" aria-label="Available games"></div>
     </div>
   `;
 

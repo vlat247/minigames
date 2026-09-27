@@ -4,8 +4,11 @@ import './game-details-dialog.scss';
 
 const DIALOG_TRANSITION_DURATION_MS: number = 240;
 const COMMENT_TEXTAREA_MAX_HEIGHT_PX: number = 88;
+const HOUR_IN_MILLISECONDS: number = 60 * 60 * 1000;
+const DAY_IN_MILLISECONDS: number = 24 * HOUR_IN_MILLISECONDS;
 
 interface GameComment {
+  readonly ageInMilliseconds: number;
   readonly author: string;
   readonly avatarColor: string;
   readonly likes: number;
@@ -48,6 +51,7 @@ const records: readonly GameRecord[] = [
 
 const comments: readonly GameComment[] = [
   {
+    ageInMilliseconds: 3 * HOUR_IN_MILLISECONDS,
     author: 'ForestDweller',
     avatarColor: 'blue',
     likes: 12,
@@ -55,6 +59,7 @@ const comments: readonly GameComment[] = [
     timeAgo: '3 hours ago',
   },
   {
+    ageInMilliseconds: DAY_IN_MILLISECONDS,
     author: 'HerbalTeaLover',
     avatarColor: 'yellow',
     likes: 5,
@@ -62,6 +67,7 @@ const comments: readonly GameComment[] = [
     timeAgo: '1 day ago',
   },
   {
+    ageInMilliseconds: 2 * DAY_IN_MILLISECONDS,
     author: 'CottageCoreMia',
     avatarColor: 'pink',
     likes: 8,
@@ -87,13 +93,17 @@ const createRecordsMarkup = (): string => {
 
 const createCommentsMarkup = (): string => {
   return comments
-    .map(
-      (comment: GameComment, index: number): string => `
+    .map((comment: GameComment, index: number): string => {
+      const publishedAt: string = new Date(
+        Date.now() - comment.ageInMilliseconds,
+      ).toISOString();
+
+      return `
         <article class="game-comment">
           <header class="game-comment__header">
             <span class="game-avatar game-avatar--${comment.avatarColor}" aria-hidden="true">${comment.author.charAt(0)}</span>
-            <strong>${comment.author}</strong>
-            <time>${comment.timeAgo}</time>
+            <h4 class="game-comment__author">${comment.author}</h4>
+            <time datetime="${publishedAt}">${comment.timeAgo}</time>
           </header>
           <p>${comment.text}</p>
           <button
@@ -108,8 +118,8 @@ const createCommentsMarkup = (): string => {
             <span data-like-count>${comment.likes}</span>
           </button>
         </article>
-      `,
-    )
+      `;
+    })
     .join('');
 };
 
@@ -147,7 +157,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
       <section class="game-info" aria-labelledby="game-details-title">
         <div class="game-info__heading">
           <h2 id="game-details-title">Tukoni: Forest Keepers</h2>
-          <div class="game-info__stats" aria-label="Game rating and likes">
+          <div class="game-info__stats" role="group" aria-label="Game rating and likes">
             <span class="game-info__rating"><span class="material-symbols-rounded" aria-hidden="true">star</span>4.9</span>
             <span class="game-info__likes"><span class="material-symbols-rounded" aria-hidden="true">favorite</span>31.2K</span>
           </div>
