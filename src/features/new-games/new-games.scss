@@ -86,18 +86,37 @@
 .game-card {
   position: relative;
   display: none;
+  min-width: 0;
   height: $carousel-height-mobile;
+  padding: 0;
   overflow: hidden;
   border: $border-width-card solid $color-ink;
   border-radius: $radius-md;
   background: $color-footer-low;
   box-shadow: $shadow-small;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
   container-type: inline-size;
 
-  &--2,
-  &--3,
-  &--4 {
+  &--previous,
+  &--active,
+  &--next {
     display: block;
+    grid-row: 1;
+  }
+
+  &--previous {
+    grid-column: 1;
+  }
+
+  &--active {
+    grid-column: 2;
+  }
+
+  &--next {
+    grid-column: 3;
   }
 
   &__image {
@@ -154,9 +173,34 @@
   }
 
   @include desktop-up {
-    display: block;
     height: $carousel-height-desktop;
     border-radius: $radius-xl;
+
+    &--far-previous,
+    &--far-next {
+      display: block;
+      grid-row: 1;
+    }
+
+    &--far-previous {
+      grid-column: 1;
+    }
+
+    &--previous {
+      grid-column: 2;
+    }
+
+    &--active {
+      grid-column: 3;
+    }
+
+    &--next {
+      grid-column: 4;
+    }
+
+    &--far-next {
+      grid-column: 5;
+    }
   }
 }
 
