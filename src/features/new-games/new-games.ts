@@ -1,46 +1,7 @@
 import { createSectionHeading } from '../../components/section-heading/section-heading';
 import { getAppPath } from '../../utils/paths';
+import { featuredGames, type FeaturedGame } from './new-games-data';
 import './new-games.scss';
-
-interface GameCardData {
-  image: string;
-  likes: string;
-  name: string;
-  rating: number;
-}
-
-const games: GameCardData[] = [
-  {
-    image: getAppPath('/assets/images/games/cat-mail-co-card.jpg'),
-    likes: '38.2K',
-    name: 'Cat Mail Co.',
-    rating: 4.9,
-  },
-  {
-    image: getAppPath('/assets/images/games/islanders-new-shores-card.jpg'),
-    likes: '54.2K',
-    name: 'ISLANDERS: New Shores',
-    rating: 4.9,
-  },
-  {
-    image: getAppPath('/assets/images/games/vacation-cafe-simulator-card.jpg'),
-    likes: '28.8K',
-    name: 'Vacation Cafe Simulator',
-    rating: 4.8,
-  },
-  {
-    image: getAppPath('/assets/images/games/winter-burrow-card.jpg'),
-    likes: '32.4K',
-    name: 'Winter Burrow',
-    rating: 4.9,
-  },
-  {
-    image: getAppPath('/assets/images/games/heartopia-card.jpg'),
-    likes: '46.8K',
-    name: 'Heartopia',
-    rating: 4.6,
-  },
-];
 
 const createCarouselControls = (): HTMLElement => {
   const controls: HTMLDivElement = document.createElement('div');
@@ -53,11 +14,11 @@ const createCarouselControls = (): HTMLElement => {
   return controls;
 };
 
-const createGameCard = (game: GameCardData, index: number): HTMLElement => {
+const createGameCard = (game: FeaturedGame, index: number): HTMLElement => {
   const card: HTMLElement = document.createElement('article');
   card.className = `game-card game-card--${index + 1}`;
   card.innerHTML = `
-    <img class="game-card__image" src="${game.image}" alt="${game.name}" />
+    <img class="game-card__image" src="${getAppPath(game.image)}" alt="${game.name}" />
     <div class="game-card__info">
       <h3 class="game-card__title" title="${game.name}">${game.name}</h3>
       <div class="game-card__meta">
@@ -80,9 +41,11 @@ export const createNewGamesSection = (): HTMLElement => {
   track.setAttribute('role', 'group');
   track.setAttribute('aria-label', 'New games preview');
   track.append(
-    ...games.map((game: GameCardData, index: number): HTMLElement =>
-      createGameCard(game, index),
-    ),
+    ...featuredGames
+      .slice(0, 5)
+      .map((game: FeaturedGame, index: number): HTMLElement =>
+        createGameCard(game, index),
+      ),
   );
 
   section.append(
