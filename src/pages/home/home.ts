@@ -6,12 +6,16 @@ import { createDeveloperCta } from '../../components/developer-cta/developer-cta
 
 export const homePage = (): RouteView => {
   const content: DocumentFragment = document.createDocumentFragment();
+  const newGames = createNewGamesSection();
   content.append(
     createHeroSection(),
-    createNewGamesSection(),
+    newGames.element,
     createLeaderboardSection(),
     createDeveloperCta(),
   );
 
-  return { content };
+  return {
+    content,
+    dispose: newGames.destroy,
+  };
 };
