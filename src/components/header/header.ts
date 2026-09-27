@@ -24,6 +24,7 @@ const dispatchAuthRequest = (mode: AuthMode): void => {
 
 export const createHeader = (): HeaderController => {
   const homePath: string = getAppPath('/');
+  const libraryPath: string = getAppPath('/library');
   const logoPath: string = getAppPath('/assets/icons/logo.png');
   const header: HTMLElement = document.createElement('header');
   const eventController: AbortController = new AbortController();
@@ -38,7 +39,7 @@ export const createHeader = (): HeaderController => {
 
       <nav class="site-header__desktop-nav" aria-label="Primary navigation">
         <a class="site-header__nav-link" href="${homePath}" data-link data-nav-path="/">Home</a>
-        <a class="site-header__nav-link" href="${homePath}" data-link data-nav-path="/library">Library</a>
+        <a class="site-header__nav-link" href="${libraryPath}" data-link data-nav-path="/library">Library</a>
         <a class="site-header__nav-link" href="${homePath}" data-link>Tournaments</a>
         <a class="site-header__nav-link" href="${homePath}" data-link>Community</a>
       </nav>
@@ -72,7 +73,7 @@ export const createHeader = (): HeaderController => {
 
       <nav class="mobile-menu__nav" aria-label="Mobile navigation">
         <a class="mobile-menu__link" href="${homePath}" data-link data-nav-path="/">Home</a>
-        <a class="mobile-menu__link" href="${homePath}" data-link data-nav-path="/library">Library</a>
+        <a class="mobile-menu__link" href="${libraryPath}" data-link data-nav-path="/library">Library</a>
         <a class="mobile-menu__link" href="${homePath}" data-link>Tournaments</a>
         <a class="mobile-menu__link" href="${homePath}" data-link>Community</a>
       </nav>
