@@ -48,6 +48,16 @@
     }
   }
 
+  &__status {
+    position: absolute;
+    width: 0;
+    height: 0;
+    margin: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
   @include tablet-up {
     padding: $space-3 $space-5;
 
@@ -133,6 +143,11 @@
     height: 100%;
     object-fit: cover;
     -webkit-user-drag: none;
+  }
+
+  &:focus-visible {
+    outline: $border-width-heavy solid $color-tertiary;
+    outline-offset: $space-0-5;
   }
 
   &__info {
