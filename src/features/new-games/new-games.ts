@@ -6,12 +6,19 @@ import './new-games.scss';
 const INITIAL_ACTIVE_GAME_INDEX: number = 2;
 const CAROUSEL_TRANSITION_DURATION_MS: number = 480;
 const CAROUSEL_ENTRY_DISTANCE_PX: number = 24;
+const AUTOPLAY_INTERVAL_MS: number = 4000;
+const SWIPE_THRESHOLD_PX: number = 48;
 
 type CarouselDirection = 'next' | 'previous';
 
 interface CarouselPosition {
   readonly className: string;
   readonly offset: number;
+}
+
+export interface NewGamesSectionController {
+  readonly destroy: () => void;
+  readonly element: HTMLElement;
 }
 
 const carouselPositions: readonly CarouselPosition[] = [
@@ -51,7 +58,7 @@ const createGameCard = (
   card.dataset.gameIndex = String(index);
   card.setAttribute('aria-label', `Open details for ${game.name}`);
   card.innerHTML = `
-    <img class="game-card__image" src="${getAppPath(game.image)}" alt="${game.name}" />
+    <img class="game-card__image" src="${getAppPath(game.image)}" alt="${game.name}" draggable="false" />
     <div class="game-card__info">
       <h3 class="game-card__title" title="${game.name}">${game.name}</h3>
       <div class="game-card__meta">
@@ -124,7 +131,7 @@ const animateCardMovement = (
   }
 };
 
-export const createNewGamesSection = (): HTMLElement => {
+export const createNewGamesSection = (): NewGamesSectionController => {
   const section: HTMLElement = document.createElement('section');
   const eventController: AbortController = new AbortController();
   const { signal } = eventController;
@@ -143,6 +150,12 @@ export const createNewGamesSection = (): HTMLElement => {
 
   const controls: HTMLElement = createCarouselControls();
   let activeGameIndex: number = INITIAL_ACTIVE_GAME_INDEX;
+  let activePointerId: number | undefined;
+  let autoplayDeadline: number = 0;
+  let autoplayRemainingMs: number = AUTOPLAY_INTERVAL_MS;
+  let autoplayTimer: number | undefined;
+  let pointerCurrentX: number = 0;
+  let pointerStartX: number = 0;
 
   const updateCardPositions = (shouldAnimate: boolean): void => {
     const previousRects = new Map<HTMLButtonElement, DOMRect>();
@@ -188,6 +201,76 @@ export const createNewGamesSection = (): HTMLElement => {
     updateCardPositions(true);
   };
 
+  const clearAutoplayTimer = (): void => {
+    if (autoplayTimer === undefined) {
+      return;
+    }
+
+    globalThis.clearTimeout(autoplayTimer);
+    autoplayTimer = undefined;
+  };
+
+  const scheduleAutoplay = (delay: number): void => {
+    clearAutoplayTimer();
+    autoplayRemainingMs = delay;
+    autoplayDeadline = globalThis.performance.now() + delay;
+    autoplayTimer = globalThis.setTimeout((): void => {
+      autoplayTimer = undefined;
+      moveCarousel('next');
+      scheduleAutoplay(AUTOPLAY_INTERVAL_MS);
+    }, delay);
+  };
+
+  const pauseAutoplay = (): void => {
+    if (autoplayTimer === undefined) {
+      return;
+    }
+
+    autoplayRemainingMs = Math.max(
+      autoplayDeadline - globalThis.performance.now(),
+      0,
+    );
+    clearAutoplayTimer();
+  };
+
+  const resumeAutoplay = (): void => {
+    scheduleAutoplay(autoplayRemainingMs);
+  };
+
+  const restartAutoplay = (): void => {
+    scheduleAutoplay(AUTOPLAY_INTERVAL_MS);
+  };
+
+  const finishPointerInteraction = (
+    event: PointerEvent,
+    isCancelled: boolean,
+  ): void => {
+    if (event.pointerId !== activePointerId) {
+      return;
+    }
+
+    if (track.hasPointerCapture(event.pointerId)) {
+      track.releasePointerCapture(event.pointerId);
+    }
+    track.classList.remove('new-games__track--dragging');
+    track.style.removeProperty('--carousel-drag-offset');
+    activePointerId = undefined;
+
+    if (isCancelled) {
+      resumeAutoplay();
+      return;
+    }
+
+    const swipeDistance: number = pointerCurrentX - pointerStartX;
+    if (Math.abs(swipeDistance) < SWIPE_THRESHOLD_PX) {
+      resumeAutoplay();
+      return;
+    }
+
+    moveCarousel(swipeDistance < 0 ? 'next' : 'previous');
+    restartAutoplay();
+  };
+
   controls.addEventListener(
     'click',
     (event: MouseEvent): void => {
@@ -207,6 +290,57 @@ export const createNewGamesSection = (): HTMLElement => {
           ? 'previous'
           : 'next',
       );
+      restartAutoplay();
+    },
+    { signal },
+  );
+
+  track.addEventListener(
+    'pointerdown',
+    (event: PointerEvent): void => {
+      if (!event.isPrimary || event.button !== 0) {
+        return;
+      }
+
+      activePointerId = event.pointerId;
+      pointerStartX = event.clientX;
+      pointerCurrentX = event.clientX;
+      track.classList.add('new-games__track--dragging');
+      track.setPointerCapture(event.pointerId);
+      pauseAutoplay();
+    },
+    { signal },
+  );
+
+  track.addEventListener(
+    'pointermove',
+    (event: PointerEvent): void => {
+      if (event.pointerId !== activePointerId) {
+        return;
+      }
+
+      pointerCurrentX = event.clientX;
+      track.style.setProperty(
+        '--carousel-drag-offset',
+        `${pointerCurrentX - pointerStartX}px`,
+      );
+    },
+    { signal },
+  );
+
+  track.addEventListener(
+    'pointerup',
+    (event: PointerEvent): void => {
+      pointerCurrentX = event.clientX;
+      finishPointerInteraction(event, false);
+    },
+    { signal },
+  );
+
+  track.addEventListener(
+    'pointercancel',
+    (event: PointerEvent): void => {
+      finishPointerInteraction(event, true);
     },
     { signal },
   );
@@ -222,5 +356,18 @@ export const createNewGamesSection = (): HTMLElement => {
     track,
   );
 
-  return section;
+  scheduleAutoplay(AUTOPLAY_INTERVAL_MS);
+
+  return {
+    destroy: (): void => {
+      eventController.abort();
+      clearAutoplayTimer();
+      for (const card of cards) {
+        for (const animation of card.getAnimations()) {
+          animation.cancel();
+        }
+      }
+    },
+    element: section,
+  };
 };
