@@ -6,6 +6,8 @@ const DIALOG_TRANSITION_DURATION_MS: number = 240;
 const COMMENT_TEXTAREA_MAX_HEIGHT_PX: number = 88;
 const HOUR_IN_MILLISECONDS: number = 60 * 60 * 1000;
 const DAY_IN_MILLISECONDS: number = 24 * HOUR_IN_MILLISECONDS;
+const heartIconPath: string = getAppPath('/assets/icons/heart.png');
+const starIconPath: string = getAppPath('/assets/icons/star.png');
 
 interface GameComment {
   readonly ageInMilliseconds: number;
@@ -114,7 +116,7 @@ const createCommentsMarkup = (): string => {
             aria-label="Like comment by ${comment.author}"
             aria-pressed="false"
           >
-            <span class="material-symbols-rounded" aria-hidden="true">favorite</span>
+            <img class="game-comment__like-icon" src="${heartIconPath}" alt="" aria-hidden="true" />
             <span data-like-count>${comment.likes}</span>
           </button>
         </article>
@@ -158,8 +160,8 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
         <div class="game-info__heading">
           <h2 id="game-details-title">Tukoni: Forest Keepers</h2>
           <div class="game-info__stats" role="group" aria-label="Game rating and likes">
-            <span class="game-info__rating"><span class="material-symbols-rounded" aria-hidden="true">star</span>4.9</span>
-            <span class="game-info__likes"><span class="material-symbols-rounded" aria-hidden="true">favorite</span>31.2K</span>
+            <span class="game-info__rating"><img class="game-info__stat-icon" src="${starIconPath}" alt="" aria-hidden="true" />4.9</span>
+            <span class="game-info__likes"><img class="game-info__stat-icon" src="${heartIconPath}" alt="" aria-hidden="true" />31.2K</span>
           </div>
         </div>
 
@@ -175,7 +177,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
         <div class="game-info__actions">
           <button class="btn btn--primary game-info__play" type="button">Play Now</button>
           <button class="btn btn--secondary game-info__favorite" type="button" data-favorite aria-pressed="false" aria-label="Add Tukoni: Forest Keepers to favorites">
-            <span class="material-symbols-rounded" aria-hidden="true">favorite</span>
+            <img class="game-info__favorite-icon" src="${heartIconPath}" alt="" aria-hidden="true" />
             <span data-favorite-label>Add to Favorites</span>
           </button>
         </div>

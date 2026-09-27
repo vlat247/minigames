@@ -72,10 +72,12 @@
       place-items: center;
       width: $space-5;
       height: $space-5;
+      border: $border-width-thin solid transparent;
       border-radius: $radius-sm;
       background: $color-footer-low;
       transition:
         background-color $transition-fast,
+        border-color $transition-fast,
         transform $transition-fast;
 
       &:active {
@@ -206,6 +208,7 @@
   }
 
   .site-footer__socials a:hover {
-    background: $color-tertiary;
+    border-color: $color-primary;
+    background: $color-footer-low;
   }
 }

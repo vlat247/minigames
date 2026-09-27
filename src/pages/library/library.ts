@@ -40,6 +40,8 @@ const sortOptions: readonly SortOption[] = [
 ];
 
 const defaultSortValue: string = 'rating-descending';
+const heartIconPath: string = getAppPath('/assets/icons/heart.png');
+const starIconPath: string = getAppPath('/assets/icons/star.png');
 
 const games: readonly LibraryGame[] = [
   {
@@ -342,14 +344,15 @@ const createGameCard = (game: LibraryGame): HTMLElement => {
           <h2 class="library-card__title">${game.name}</h2>
           <span class="library-card__category">${game.category}</span>
         </div>
-        <strong class="library-card__price${game.price === 'Free' ? ' library-card__price--free' : ''}">${game.price}</strong>
+        <strong class="library-card__price library-card__price--desktop${game.price === 'Free' ? ' library-card__price--free' : ''}">${game.price}</strong>
       </div>
       <p class="library-card__description">${game.description}</p>
       <div class="library-card__footer">
         <div class="library-card__stats">
-          <span role="img" aria-label="Rated ${game.rating} out of 5"><span class="library-card__rating" aria-hidden="true">★</span> ${game.rating}</span>
-          <span role="img" aria-label="${game.likes} likes"><span class="library-card__likes" aria-hidden="true">♡</span> ${game.likes}</span>
+          <span role="img" aria-label="Rated ${game.rating} out of 5"><img class="library-card__stat-icon" src="${starIconPath}" alt="" aria-hidden="true" />${game.rating}</span>
+          <span role="img" aria-label="${game.likes} likes"><img class="library-card__stat-icon" src="${heartIconPath}" alt="" aria-hidden="true" />${game.likes}</span>
         </div>
+        <strong class="library-card__price library-card__price--mobile${game.price === 'Free' ? ' library-card__price--free' : ''}">${game.price}</strong>
         <button class="btn btn--primary library-card__details" type="button" data-game-slug="${game.slug}">Details</button>
       </div>
     </div>

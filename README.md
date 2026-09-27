@@ -1,6 +1,6 @@
 # MiniGames
 
-MiniGames is a responsive TypeScript single-page application built from the RS School design without JavaScript or CSS frameworks. Story 1 covers the Home page, mobile navigation, and authentication dialog.
+MiniGames is a responsive TypeScript single-page application built from the RS School design without JavaScript or CSS frameworks. Story 2 adds the Library page, the Game Details dialog, and the interactive Home carousel to the shared application shell introduced in Story 1.
 
 ## Technology
 
@@ -8,6 +8,13 @@ MiniGames is a responsive TypeScript single-page application built from the RS S
 - Sass with shared design tokens and responsive mixins
 - Vite for development and production builds
 - ESLint, Unicorn, Prettier, Husky, and lint-staged for code quality
+
+## Story 2 features
+
+- Home and Library routes with client-side navigation and shared layout components
+- Responsive Library filters, sorting controls, game cards, and pagination states
+- Animated, accessible Game Details dialog with temporary favorite, comment-like, and textarea state
+- Circular nine-game carousel with arrows, swipe gestures, and four-second autoplay
 
 ## Local development
 
@@ -27,4 +34,4 @@ The application targets the latest Google Chrome and is verified at 375px, 768px
 
 ## Deployment
 
-The `story-1` branch is configured for GitHub Pages deployment at <https://vlat247.github.io/minigames/>. The workflow runs the full quality check before publishing the production build.
+The `story-2` branch is configured for GitHub Pages deployment at <https://vlat247.github.io/minigames/>. The workflow runs the full quality check before publishing the production build.
