@@ -1,0 +1,482 @@
+@use '../../styles/abstracts/tokens' as *;
+@use '../../styles/abstracts/mixins' as *;
+
+.game-details-dialog {
+  width: min($game-details-dialog-width, 100vw);
+  max-width: $game-details-dialog-width;
+  max-height: calc(100dvh - #{$dialog-viewport-gap});
+  margin: auto;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: $border-width-heavy solid $color-ink;
+  border-radius: $radius-lg;
+  background: $color-background;
+  box-shadow: $shadow-dialog;
+  color: $color-text;
+  opacity: 0;
+  transform: translateY($dialog-motion-distance) scale(0.98);
+  transition:
+    opacity $transition-default,
+    transform $transition-default;
+
+  &::backdrop {
+    background: $color-backdrop;
+    opacity: 0;
+    transition: opacity $transition-default;
+  }
+
+  &--visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  &--visible::backdrop {
+    opacity: 1;
+  }
+
+  &--closing {
+    pointer-events: none;
+  }
+
+  &__hero {
+    position: relative;
+    height: $game-details-hero-height;
+    overflow: hidden;
+    background: $color-footer;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  &__close {
+    position: absolute;
+    top: $space-2;
+    right: $space-2;
+    display: grid;
+    width: $game-details-close-size;
+    height: $game-details-close-size;
+    place-items: center;
+    padding: 0;
+    border: $border-width-default solid $color-ink;
+    border-radius: $radius-round;
+    background: $color-surface;
+    color: $color-ink;
+    box-shadow: $shadow-small;
+    cursor: pointer;
+    transition:
+      background-color $transition-fast,
+      transform $transition-fast;
+
+    .material-symbols-rounded {
+      font-size: $font-size-xl;
+    }
+
+    &:active {
+      transform: translateY($border-width-default);
+    }
+  }
+
+  &__content {
+    display: grid;
+    gap: $space-3;
+    padding: $space-2;
+  }
+
+  @include tablet-up {
+    border-radius: $radius-xl;
+
+    &__content {
+      padding: $space-3;
+    }
+  }
+}
+
+.game-info {
+  display: grid;
+  gap: $space-2;
+
+  &__heading {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $space-1 $space-2;
+    align-items: center;
+    justify-content: space-between;
+
+    h2 {
+      margin: 0;
+      font-size: $font-size-xl;
+    }
+  }
+
+  &__stats {
+    display: flex;
+    flex: 0 0 auto;
+    gap: $space-1;
+    align-items: center;
+    color: $color-ink;
+    font-size: $font-size-2xs;
+    font-weight: $font-weight-semibold;
+  }
+
+  &__rating,
+  &__likes {
+    display: inline-flex;
+    gap: $space-0-5;
+    align-items: center;
+
+    .material-symbols-rounded {
+      font-size: $font-size-sm;
+    }
+  }
+
+  &__rating .material-symbols-rounded {
+    color: $color-primary;
+    font-variation-settings:
+      'FILL' 1,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 20;
+  }
+
+  &__likes .material-symbols-rounded {
+    color: $color-error;
+  }
+
+  &__description {
+    margin: 0;
+    font-size: $font-size-xs;
+    line-height: $line-height-body;
+  }
+
+  &__actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) $game-details-mobile-favorite-size;
+    gap: $space-1;
+  }
+
+  &__play,
+  &__favorite {
+    min-width: 0;
+    border-color: $color-ink;
+    box-shadow: $shadow-button;
+  }
+
+  &__favorite {
+    gap: $space-1;
+    padding-inline: 0;
+    background: $color-surface;
+
+    .material-symbols-rounded {
+      font-size: $font-size-lg;
+    }
+
+    [data-favorite-label] {
+      display: none;
+    }
+
+    &--active {
+      background: $color-footer-low;
+      color: $color-white;
+
+      .material-symbols-rounded {
+        font-variation-settings:
+          'FILL' 1,
+          'wght' 400,
+          'GRAD' 0,
+          'opsz' 20;
+      }
+    }
+  }
+
+  @include tablet-up {
+    &__heading h2 {
+      font-size: $font-size-2xl;
+    }
+
+    &__actions {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    &__favorite {
+      padding-inline: $button-padding-x;
+
+      [data-favorite-label] {
+        display: inline;
+      }
+    }
+  }
+}
+
+.game-specs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $space-1;
+  margin: 0;
+
+  div {
+    min-width: 0;
+    padding: $space-1;
+    border: $border-width-thin solid $color-outline;
+    border-bottom: $border-width-default solid $color-ink;
+    border-radius: $radius-sm;
+    background: $color-surface;
+  }
+
+  dt {
+    color: $color-text-muted;
+    font-size: $font-size-2xs;
+  }
+
+  dd {
+    margin: $space-0-5 0 0;
+    color: $color-ink;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+  }
+
+  @include tablet-up {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.game-records,
+.game-comments {
+  h3 {
+    margin: 0 0 $space-2;
+    font-size: $font-size-sm;
+  }
+}
+
+.game-records {
+  ol {
+    display: grid;
+    gap: $space-1;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__item {
+    display: grid;
+    grid-template-columns: $game-record-medal-width minmax(0, 1fr) auto;
+    gap: $space-1;
+    align-items: center;
+    min-height: $game-record-row-height;
+    padding: $space-1;
+    border-radius: $radius-sm;
+    background: $color-surface;
+    color: $color-ink;
+    font-size: $font-size-2xs;
+  }
+
+  &__score {
+    font-weight: $font-weight-semibold;
+  }
+
+  &__time {
+    grid-column: 2 / -1;
+    color: $color-text-muted;
+    text-align: right;
+  }
+
+  @include tablet-up {
+    &__item {
+      grid-template-columns: $game-record-medal-width minmax(0, 1fr) auto auto;
+    }
+
+    &__time {
+      grid-column: auto;
+    }
+  }
+}
+
+.game-comment-form {
+  display: grid;
+  grid-template-columns:
+    $game-comment-avatar-size minmax(0, 1fr)
+    $game-comment-submit-size;
+  gap: $space-1;
+  align-items: start;
+
+  &__field {
+    display: block;
+  }
+
+  &__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  textarea {
+    display: block;
+    width: 100%;
+    min-height: $game-comment-control-height;
+    max-height: $game-comment-textarea-max-height;
+    resize: none;
+    padding: $space-1 $space-2;
+    overflow-y: hidden;
+    border: $border-width-default solid $color-ink;
+    border-radius: $radius-sm;
+    outline: 0;
+    background: $color-surface;
+    color: $color-ink;
+    font: inherit;
+    font-size: $font-size-xs;
+    line-height: $line-height-body;
+
+    &::placeholder {
+      color: $color-text-muted;
+      opacity: 1;
+    }
+
+    &:focus {
+      box-shadow: $focus-ring;
+    }
+  }
+
+  &__submit {
+    display: grid;
+    width: $game-comment-submit-size;
+    height: $game-comment-control-height;
+    place-items: center;
+    padding: 0;
+    border: $border-width-default solid $color-ink;
+    border-radius: $radius-sm;
+    background: $color-footer-low;
+    color: $color-white;
+    cursor: pointer;
+    transition:
+      background-color $transition-fast,
+      transform $transition-fast;
+
+    &:active {
+      transform: translateY($border-width-default);
+    }
+
+    .material-symbols-rounded {
+      font-size: $font-size-lg;
+    }
+  }
+}
+
+.game-avatar {
+  display: grid;
+  width: $game-comment-avatar-size;
+  height: $game-comment-avatar-size;
+  place-items: center;
+  flex: 0 0 auto;
+  border: $border-width-thin solid $color-ink;
+  border-radius: $radius-round;
+  color: $color-ink;
+  font-size: $font-size-2xs;
+  font-weight: $font-weight-semibold;
+
+  &--blue {
+    background: $color-avatar-blue;
+  }
+
+  &--yellow {
+    background: $color-primary;
+  }
+
+  &--pink {
+    background: $color-avatar-pink;
+  }
+}
+
+.game-comments {
+  &__list {
+    display: grid;
+    gap: $space-1;
+    margin-top: $space-2;
+  }
+}
+
+.game-comment {
+  padding: $space-2;
+  border: $border-width-thin solid $color-outline;
+  border-bottom: $border-width-default solid $color-ink;
+  border-radius: $radius-sm;
+  background: $color-surface;
+
+  &__header {
+    display: grid;
+    grid-template-columns: $game-comment-avatar-size minmax(0, 1fr) auto;
+    gap: $space-1;
+    align-items: center;
+    color: $color-ink;
+    font-size: $font-size-2xs;
+
+    time {
+      color: $color-text-muted;
+    }
+  }
+
+  p {
+    margin: $space-1 0;
+    color: $color-text;
+    font-size: $font-size-xs;
+    line-height: $line-height-body;
+  }
+
+  &__like {
+    display: inline-flex;
+    gap: $space-0-5;
+    align-items: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: $color-ink;
+    font-size: $font-size-2xs;
+    cursor: pointer;
+
+    .material-symbols-rounded {
+      font-size: $font-size-sm;
+    }
+
+    &--active {
+      color: $color-error;
+
+      .material-symbols-rounded {
+        font-variation-settings:
+          'FILL' 1,
+          'wght' 400,
+          'GRAD' 0,
+          'opsz' 20;
+      }
+    }
+  }
+}
+
+@include hover-capable {
+  .game-details-dialog__close:hover,
+  .game-info__favorite:hover:not(.game-info__favorite--active) {
+    background: $color-outline;
+  }
+
+  .game-info__favorite--active:hover,
+  .game-comment-form__submit:hover {
+    background: $color-tertiary;
+  }
+
+  .game-comment__like:hover {
+    color: $color-error;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-details-dialog,
+  .game-details-dialog::backdrop {
+    transition-duration: $motion-reduced-duration;
+  }
+}
