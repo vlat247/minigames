@@ -334,7 +334,6 @@ const createGameCard = (game: LibraryGame): HTMLElement => {
   const card: HTMLElement = document.createElement('article');
   const imagePath: string = getAppPath(`/assets/images/games/${game.image}`);
   card.className = 'library-card';
-  card.setAttribute('role', 'listitem');
   card.innerHTML = `
     <img class="library-card__image" src="${imagePath}" alt="${game.name} game artwork" />
     <div class="library-card__content">
@@ -468,7 +467,7 @@ export const libraryPage = (): RouteView => {
         <p>Browse our collection of casual mini-games</p>
       </header>
       <div class="library__controls"></div>
-      <div class="library__games" role="list" aria-label="Available games"></div>
+      <div class="library__games" role="region" aria-label="Available games"></div>
     </div>
   `;
 
