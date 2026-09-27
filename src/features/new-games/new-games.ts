@@ -12,6 +12,8 @@ const CAROUSEL_TRANSITION_DURATION_MS: number = 480;
 const CAROUSEL_ENTRY_DISTANCE_PX: number = 24;
 const AUTOPLAY_INTERVAL_MS: number = 4000;
 const SWIPE_THRESHOLD_PX: number = 48;
+const heartIconPath: string = getAppPath('/assets/icons/heart.png');
+const starIconPath: string = getAppPath('/assets/icons/star.png');
 
 type CarouselDirection = 'next' | 'previous';
 
@@ -66,8 +68,8 @@ const createGameCard = (
     <span class="game-card__info">
       <span class="game-card__title" title="${game.name}">${game.name}</span>
       <span class="game-card__meta">
-        <span role="img" aria-label="Rated ${game.rating} out of 5"><span aria-hidden="true">★</span> ${game.rating}</span>
-        <span role="img" aria-label="${game.likes} likes"><span aria-hidden="true">♥</span> ${game.likes}</span>
+        <span role="img" aria-label="Rated ${game.rating} out of 5"><img class="game-card__meta-icon" src="${starIconPath}" alt="" aria-hidden="true" />${game.rating}</span>
+        <span role="img" aria-label="${game.likes} likes"><img class="game-card__meta-icon" src="${heartIconPath}" alt="" aria-hidden="true" />${game.likes}</span>
       </span>
     </span>
   `;

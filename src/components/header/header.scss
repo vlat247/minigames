@@ -284,11 +284,12 @@ body.menu-open {
   }
 
   .site-header__menu-toggle:hover {
-    background: $color-ink-hover;
+    background: $color-hover;
   }
 
   .site-header--menu-open .site-header__menu-toggle:hover {
-    background: $color-tertiary;
+    background: $color-footer-low;
+    box-shadow: inset 0 0 0 $border-width-thin $color-primary;
   }
 
   .mobile-menu__link:hover {

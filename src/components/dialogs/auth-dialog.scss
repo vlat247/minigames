@@ -283,7 +283,7 @@ body.dialog-open {
 @include hover-capable {
   .auth-tabs button:hover:not([aria-selected='true']),
   .auth-google-button:hover {
-    background: $color-outline;
+    background: $color-hover;
   }
 
   .auth-panel__footer button:hover,

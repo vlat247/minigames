@@ -7,7 +7,7 @@
   background: $color-background;
 
   &__controls {
-    display: none;
+    display: flex;
     gap: $space-2;
   }
 
@@ -60,10 +60,6 @@
 
   @include tablet-up {
     padding: $space-3 $space-5;
-
-    &__controls {
-      display: flex;
-    }
 
     &__arrow {
       width: $space-5;
@@ -181,9 +177,18 @@
     font-size: $font-size-2xs;
     font-weight: $font-weight-semibold;
 
-    span span {
-      color: $color-primary;
+    > span {
+      display: inline-flex;
+      gap: $space-0-5;
+      align-items: center;
     }
+  }
+
+  &__meta-icon {
+    width: $font-size-2xs;
+    height: $font-size-2xs;
+    flex: 0 0 auto;
+    object-fit: contain;
   }
 
   @container (min-width: #{$carousel-card-info-threshold}) {
@@ -235,6 +240,6 @@
 
 @include hover-capable {
   .new-games__arrow:hover {
-    background: $color-primary;
+    background: $color-hover;
   }
 }
