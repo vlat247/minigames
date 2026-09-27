@@ -61,18 +61,15 @@ const createGameCard = (
   card.type = 'button';
   card.dataset.gameIndex = String(index);
   card.setAttribute('aria-label', `Open details for ${game.name}`);
-  card.setAttribute('aria-roledescription', 'slide');
-  card.setAttribute('aria-setsize', String(featuredGames.length));
-  card.setAttribute('aria-posinset', String(index + 1));
   card.innerHTML = `
     <img class="game-card__image" src="${getAppPath(game.image)}" alt="${game.name}" draggable="false" />
-    <div class="game-card__info">
-      <h3 class="game-card__title" title="${game.name}">${game.name}</h3>
-      <div class="game-card__meta">
+    <span class="game-card__info">
+      <span class="game-card__title" title="${game.name}">${game.name}</span>
+      <span class="game-card__meta">
         <span role="img" aria-label="Rated ${game.rating} out of 5"><span aria-hidden="true">★</span> ${game.rating}</span>
         <span role="img" aria-label="${game.likes} likes"><span aria-hidden="true">♥</span> ${game.likes}</span>
-      </div>
-    </div>
+      </span>
+    </span>
   `;
 
   return card;
