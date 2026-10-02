@@ -57,8 +57,8 @@
     top: $space-2;
     right: $space-2;
     display: grid;
-    width: $game-details-close-size;
-    height: $game-details-close-size;
+    width: $space-4;
+    height: $space-4;
     place-items: center;
     padding: 0;
     border: $border-width-default solid $color-ink;
@@ -72,7 +72,7 @@
       transform $transition-fast;
 
     .material-symbols-rounded {
-      font-size: $font-size-xl;
+      font-size: $font-size-lg;
     }
 
     &:active {
@@ -83,15 +83,11 @@
   &__content {
     display: grid;
     gap: $space-3;
-    padding: $space-2;
+    padding: $space-3;
   }
 
   @include tablet-up {
     border-radius: $radius-xl;
-
-    &__content {
-      padding: $space-3;
-    }
   }
 }
 
@@ -118,7 +114,7 @@
     gap: $space-1;
     align-items: center;
     color: $color-ink;
-    font-size: $font-size-2xs;
+    font-size: $font-size-xs;
     font-weight: $font-weight-semibold;
   }
 
@@ -130,22 +126,22 @@
   }
 
   &__stat-icon {
-    width: $font-size-sm;
-    height: $font-size-sm;
+    width: $font-size-lg;
+    height: $font-size-lg;
     flex: 0 0 auto;
     object-fit: contain;
   }
 
   &__description {
     margin: 0;
-    font-size: $font-size-xs;
+    font-size: $font-size-sm;
     line-height: $line-height-body;
   }
 
   &__actions {
     display: grid;
     grid-template-columns: minmax(0, 1fr) $game-details-mobile-favorite-size;
-    gap: $space-1;
+    gap: $space-2;
   }
 
   &__play,
@@ -200,7 +196,7 @@
 .game-specs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: $space-1;
+  gap: $space-2;
   margin: 0;
 
   div {
@@ -248,10 +244,10 @@
 
   &__item {
     display: grid;
-    grid-template-columns: $game-record-medal-width minmax(0, 1fr) auto;
+    grid-template-columns: $game-record-medal-width minmax(0, 1fr) auto auto;
     gap: $space-1;
     align-items: center;
-    min-height: $game-record-row-height;
+    min-height: $space-6;
     padding: $space-1;
     border-radius: $radius-sm;
     background: $color-surface;
@@ -260,33 +256,33 @@
   }
 
   &__score {
+    font-size: $font-size-xs;
     font-weight: $font-weight-semibold;
   }
 
-  &__time {
-    grid-column: 2 / -1;
-    color: $color-text-muted;
-    text-align: right;
+  &__item strong {
+    font-size: $font-size-xs;
   }
 
-  @include tablet-up {
-    &__item {
-      grid-template-columns: $game-record-medal-width minmax(0, 1fr) auto auto;
-    }
-
-    &__time {
-      grid-column: auto;
-    }
+  &__time {
+    grid-column: auto;
+    color: $color-text-muted;
+    text-align: right;
   }
 }
 
 .game-comment-form {
   display: grid;
   grid-template-columns:
-    $game-comment-avatar-size minmax(0, 1fr)
+    $space-5 minmax(0, 1fr)
     $game-comment-submit-size;
-  gap: $space-1;
-  align-items: start;
+  gap: $space-2;
+  align-items: center;
+
+  > .game-avatar {
+    width: $space-5;
+    height: $space-5;
+  }
 
   &__field {
     display: block;
@@ -306,7 +302,7 @@
   textarea {
     display: block;
     width: 100%;
-    min-height: $game-comment-control-height;
+    min-height: $space-6;
     max-height: $game-comment-textarea-max-height;
     resize: none;
     padding: $space-1 $space-2;
@@ -333,7 +329,7 @@
   &__submit {
     display: grid;
     width: $game-comment-submit-size;
-    height: $game-comment-control-height;
+    height: $game-comment-submit-size;
     place-items: center;
     padding: 0;
     border: $border-width-default solid $color-ink;
@@ -383,7 +379,7 @@
 .game-comments {
   &__list {
     display: grid;
-    gap: $space-1;
+    gap: $space-2;
     margin-top: $space-2;
   }
 }
@@ -411,7 +407,7 @@
   &__author {
     margin: 0;
     color: inherit;
-    font-size: inherit;
+    font-size: $font-size-xs;
     line-height: inherit;
   }
 

@@ -40,14 +40,14 @@ export const createFooter = (): HTMLElement => {
         <div class="site-footer__link-group site-footer__community">
           <h2>Community</h2>
           <div class="site-footer__socials">
-            <a href="${homePath}" data-link aria-label="MiniGames on Bluesky">
-              <svg aria-hidden="true" width="20" height="20"><use href="${iconSpritePath}#bluesky-icon"></use></svg>
+            <a href="${homePath}" data-link aria-label="Share MiniGames">
+              <span class="material-symbols-rounded" aria-hidden="true">share</span>
             </a>
-            <a href="${homePath}" data-link aria-label="MiniGames on Discord">
-              <svg aria-hidden="true" width="20" height="20"><use href="${iconSpritePath}#discord-icon"></use></svg>
+            <a href="${homePath}" data-link aria-label="MiniGames community chat">
+              <span class="material-symbols-rounded" aria-hidden="true">chat</span>
             </a>
-            <a href="${homePath}" data-link aria-label="MiniGames on X">
-              <svg aria-hidden="true" width="20" height="20"><use href="${iconSpritePath}#x-icon"></use></svg>
+            <a href="${homePath}" data-link aria-label="MiniGames RSS feed">
+              <span class="material-symbols-rounded" aria-hidden="true">rss_feed</span>
             </a>
           </div>
         </div>

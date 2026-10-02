@@ -17,18 +17,37 @@
     width: $space-5;
     height: $space-5;
     border: $border-width-default solid $color-ink;
-    border-radius: $radius-sm;
+    border-radius: $radius-round;
     background: $color-surface;
     color: $color-ink;
-    font-size: $font-size-xl;
-    line-height: $line-height-solid;
     cursor: pointer;
     transition:
       background-color $transition-fast,
+      opacity $transition-fast,
       transform $transition-fast;
 
-    &:active {
+    &--next {
+      background: $color-primary;
+    }
+
+    .material-symbols-rounded {
+      font-size: $font-size-xl;
+      line-height: $line-height-solid;
+    }
+
+    &:focus-visible {
+      outline: $border-width-heavy solid $color-tertiary;
+      outline-offset: $space-0-5;
+    }
+
+    &:active:not(:disabled) {
       transform: translateY($border-width-default);
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+      transform: none;
     }
   }
 
@@ -114,6 +133,13 @@
   container-type: inline-size;
   translate: var(--carousel-drag-offset, 0) 0;
   transition: translate $transition-fast;
+
+  &--outgoing {
+    position: fixed;
+    display: block;
+    margin: 0;
+    pointer-events: none;
+  }
 
   &--previous,
   &--active,
@@ -239,7 +265,7 @@
 }
 
 @include hover-capable {
-  .new-games__arrow:hover {
+  .new-games__arrow:hover:not(:disabled) {
     background: $color-hover;
   }
 }
