@@ -1,15 +1,15 @@
-1. Task: [MiniGames Story 1](https://github.com/rolling-scopes-school/qualifying-stage/blob/main/tasks/minigames/story-1.md)
+1. Task: [MiniGames Story 2](https://github.com/rolling-scopes-school/qualifying-stage/blob/main/tasks/minigames/story-2.md)
 2. Screenshot:
 
    <!-- Drag and drop the current application screenshot here. -->
 
 3. Deployment: <!-- Add the public deployment URL. -->
 4. Done <!-- DD.MM.YYYY --> / deadline <!-- DD.MM.YYYY -->
-5. Score: <!-- self-check score --> / 294
+5. Score: <!-- self-check score --> / 257
 
 ## Self-check
 
-<!-- Copy the Story 1 criteria here and mark every completed item. -->
+<!-- Copy the Story 2 criteria here and mark every completed item. -->
 
 ## Changes and rationale
 

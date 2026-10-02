@@ -7,7 +7,7 @@
   background: $color-background;
 
   &__controls {
-    display: none;
+    display: flex;
     gap: $space-2;
   }
 
@@ -17,18 +17,37 @@
     width: $space-5;
     height: $space-5;
     border: $border-width-default solid $color-ink;
-    border-radius: $radius-sm;
+    border-radius: $radius-round;
     background: $color-surface;
     color: $color-ink;
-    font-size: $font-size-xl;
-    line-height: $line-height-solid;
     cursor: pointer;
     transition:
       background-color $transition-fast,
+      opacity $transition-fast,
       transform $transition-fast;
 
-    &:active {
+    &--next {
+      background: $color-primary;
+    }
+
+    .material-symbols-rounded {
+      font-size: $font-size-xl;
+      line-height: $line-height-solid;
+    }
+
+    &:focus-visible {
+      outline: $border-width-heavy solid $color-tertiary;
+      outline-offset: $space-0-5;
+    }
+
+    &:active:not(:disabled) {
       transform: translateY($border-width-default);
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+      transform: none;
     }
   }
 
@@ -39,14 +58,27 @@
       $carousel-edge-mobile;
     gap: $space-1;
     margin-top: $space-2;
+    cursor: grab;
+    touch-action: pan-y;
+    user-select: none;
+
+    &--dragging {
+      cursor: grabbing;
+    }
+  }
+
+  &__status {
+    position: absolute;
+    width: 0;
+    height: 0;
+    margin: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   @include tablet-up {
     padding: $space-3 $space-5;
-
-    &__controls {
-      display: flex;
-    }
 
     &__arrow {
       width: $space-5;
@@ -86,24 +118,58 @@
 .game-card {
   position: relative;
   display: none;
+  min-width: 0;
   height: $carousel-height-mobile;
+  padding: 0;
   overflow: hidden;
   border: $border-width-card solid $color-ink;
   border-radius: $radius-md;
   background: $color-footer-low;
   box-shadow: $shadow-small;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
   container-type: inline-size;
+  translate: var(--carousel-drag-offset, 0) 0;
+  transition: translate $transition-fast;
 
-  &--2,
-  &--3,
-  &--4 {
+  &--outgoing {
+    position: fixed;
     display: block;
+    margin: 0;
+    pointer-events: none;
+  }
+
+  &--previous,
+  &--active,
+  &--next {
+    display: block;
+    grid-row: 1;
+  }
+
+  &--previous {
+    grid-column: 1;
+  }
+
+  &--active {
+    grid-column: 2;
+  }
+
+  &--next {
+    grid-column: 3;
   }
 
   &__image {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    -webkit-user-drag: none;
+  }
+
+  &:focus-visible {
+    outline: $border-width-heavy solid $color-tertiary;
+    outline-offset: $space-0-5;
   }
 
   &__info {
@@ -137,9 +203,18 @@
     font-size: $font-size-2xs;
     font-weight: $font-weight-semibold;
 
-    span span {
-      color: $color-primary;
+    > span {
+      display: inline-flex;
+      gap: $space-0-5;
+      align-items: center;
     }
+  }
+
+  &__meta-icon {
+    width: $font-size-2xs;
+    height: $font-size-2xs;
+    flex: 0 0 auto;
+    object-fit: contain;
   }
 
   @container (min-width: #{$carousel-card-info-threshold}) {
@@ -154,14 +229,43 @@
   }
 
   @include desktop-up {
-    display: block;
     height: $carousel-height-desktop;
     border-radius: $radius-xl;
+
+    &--far-previous,
+    &--far-next {
+      display: block;
+      grid-row: 1;
+    }
+
+    &--far-previous {
+      grid-column: 1;
+    }
+
+    &--previous {
+      grid-column: 2;
+    }
+
+    &--active {
+      grid-column: 3;
+    }
+
+    &--next {
+      grid-column: 4;
+    }
+
+    &--far-next {
+      grid-column: 5;
+    }
   }
 }
 
+.new-games__track--dragging .game-card {
+  transition: none;
+}
+
 @include hover-capable {
-  .new-games__arrow:hover {
-    background: $color-primary;
+  .new-games__arrow:hover:not(:disabled) {
+    background: $color-hover;
   }
 }

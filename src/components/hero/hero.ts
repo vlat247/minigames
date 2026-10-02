@@ -1,10 +1,16 @@
 import './hero.scss';
+import { getAppPath } from '../../utils/paths';
 
 export const createHeroSection = (): HTMLElement => {
+  const backgroundImagePath: string = getAppPath(
+    '/assets/images/home/hero-background.png',
+  );
+  const libraryPath: string = getAppPath('/library');
   const section: HTMLElement = document.createElement('section');
   section.className = 'hero';
   section.setAttribute('aria-labelledby', 'hero-title');
   section.innerHTML = `
+    <img class="hero__background" src="${backgroundImagePath}" alt="" />
     <div class="hero__card">
       <h1 class="hero__title" id="hero-title">Take a Short Break &amp; Have Fun</h1>
       <p class="hero__description hero__description--full">
@@ -13,7 +19,7 @@ export const createHeroSection = (): HTMLElement => {
       <p class="hero__description hero__description--compact">
         Discover hundreds of curated casual mini-games right in your browser.
       </p>
-      <button class="btn btn--primary btn--large hero__button" type="button">Browse Library</button>
+      <a class="btn btn--primary btn--large hero__button" href="${libraryPath}" data-link>Browse Library</a>
     </div>
   `;
 

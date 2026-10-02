@@ -17,7 +17,7 @@ export const createDeveloperCta = (): HTMLElement => {
       <p class="developer-cta__description">
         Want to see your game on MiniGames? We're always looking for fun, engaging mini games to add to our platform. Submit your game and reach thousands of players!
       </p>
-      <button class="btn btn--primary btn--large developer-cta__button" type="button">
+      <button class="btn btn--primary developer-cta__button" type="button">
         <span class="material-symbols-rounded developer-cta__button-icon" aria-hidden="true">upload</span>
         Submit Form
       </button>

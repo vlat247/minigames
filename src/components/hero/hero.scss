@@ -11,14 +11,13 @@
   overflow: hidden;
   background: $color-hero-overlay;
 
-  &::before {
+  &__background {
     position: absolute;
     z-index: -1;
     inset: 0;
-    background-image: url('/assets/images/home/hero-background.png');
-    background-position: center;
-    background-size: cover;
-    content: '';
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
     opacity: $hero-image-opacity;
   }
 

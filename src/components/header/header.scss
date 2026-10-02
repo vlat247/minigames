@@ -5,7 +5,8 @@
 .site-header {
   position: relative;
   z-index: $z-index-header;
-  height: $header-height-compact;
+  height: $space-8;
+  border-bottom: $border-width-default solid $color-ink;
   background: $color-background;
   color: $color-ink;
 
@@ -29,15 +30,19 @@
   &__brand {
     gap: $space-1;
     color: $color-ink;
-    font-size: $font-size-lg;
+    font-size: $font-size-xl;
     font-weight: $font-weight-bold;
     line-height: $line-height-solid;
     white-space: nowrap;
   }
 
   &__logo {
-    width: $font-size-lg;
-    height: $font-size-lg;
+    width: $space-4;
+    height: $space-4;
+    padding: $space-0-5;
+    border: $border-width-default solid currentcolor;
+    border-radius: $radius-xs;
+    object-fit: contain;
   }
 
   &__desktop-nav,
@@ -59,9 +64,9 @@
     display: grid;
     place-content: center;
     gap: $space-0-5;
-    width: $space-5;
-    height: $space-5;
-    border: 0;
+    width: $space-4;
+    height: $space-4;
+    border: $border-width-default solid currentcolor;
     border-radius: $radius-sm;
     background: transparent;
     color: $color-ink;
@@ -103,6 +108,8 @@
   }
 
   @include tablet-up {
+    height: $header-height-compact;
+
     &__inner {
       padding-inline: $space-5;
     }
@@ -155,11 +162,6 @@
       &--active {
         color: $color-ink;
         font-weight: $font-weight-bold;
-
-        &::after {
-          opacity: 1;
-          transform: scaleX(1);
-        }
       }
     }
 
@@ -278,17 +280,18 @@ body.menu-open {
 }
 
 @include hover-capable {
-  .site-header__nav-link:hover::after {
+  .site-header__nav-link:not(.site-header__nav-link--active):hover::after {
     opacity: 1;
     transform: scaleX(1);
   }
 
   .site-header__menu-toggle:hover {
-    background: $color-ink-hover;
+    background: $color-hover;
   }
 
   .site-header--menu-open .site-header__menu-toggle:hover {
-    background: $color-tertiary;
+    background: $color-footer-low;
+    box-shadow: inset 0 0 0 $border-width-thin $color-primary;
   }
 
   .mobile-menu__link:hover {
