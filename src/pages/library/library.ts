@@ -1,8 +1,10 @@
-import type { RouteView } from '../../app/router';
+import type { RouteContext, RouteView } from '../../app/router';
 import {
-  GAME_DETAILS_OPEN_EVENT,
-  type GameDetailsRequestDetail,
-} from '../../components/dialogs/game-details-events';
+  updateUrlState,
+  type GameSort,
+  type LibraryCategory,
+} from '../../app/url-state';
+import { dispatchGameDetailsRequest } from '../../components/dialogs/game-details-events';
 import { getAppPath } from '../../utils/paths';
 import './library.scss';
 
@@ -19,27 +21,46 @@ interface LibraryGame {
 
 interface SortOption {
   readonly label: string;
-  readonly value: string;
+  readonly value: GameSort;
 }
 
-const categories: readonly string[] = [
-  'All Games',
-  'Puzzle',
-  'Card',
-  'Match',
-  'Farm',
-  'Strategy',
-  'Arcade',
+interface CategoryOption {
+  readonly label: string;
+  readonly value: LibraryCategory;
+}
+
+interface FilterController {
+  readonly element: HTMLElement;
+  readonly setValue: (value: LibraryCategory) => void;
+}
+
+interface SortController {
+  readonly element: HTMLElement;
+  readonly setValue: (value: GameSort) => void;
+}
+
+interface PaginationController {
+  readonly element: HTMLElement;
+  readonly setPage: (page: number) => void;
+}
+
+const categories: readonly CategoryOption[] = [
+  { label: 'All Games', value: 'all' },
+  { label: 'Puzzle', value: 'puzzle' },
+  { label: 'Card', value: 'card' },
+  { label: 'Match', value: 'match' },
+  { label: 'Farm', value: 'farm' },
+  { label: 'Strategy', value: 'strategy' },
+  { label: 'Arcade', value: 'arcade' },
 ];
 
 const sortOptions: readonly SortOption[] = [
-  { label: 'Rating ↑', value: 'rating-ascending' },
-  { label: 'Rating ↓', value: 'rating-descending' },
-  { label: 'Name A→Z', value: 'name-ascending' },
-  { label: 'Name Z→A', value: 'name-descending' },
+  { label: 'Rating ↓', value: 'rating-desc' },
+  { label: 'Rating ↑', value: 'rating-asc' },
+  { label: 'Name A→Z', value: 'name-asc' },
+  { label: 'Name Z→A', value: 'name-desc' },
 ];
 
-const defaultSortValue: string = 'rating-descending';
 const heartIconPath: string = getAppPath('/assets/icons/heart.png');
 const starIconPath: string = getAppPath('/assets/icons/star.png');
 
@@ -112,30 +133,67 @@ const games: readonly LibraryGame[] = [
   },
 ];
 
-const createFilterChips = (): HTMLElement => {
+const createFilterChips = (
+  signal: AbortSignal,
+  onSelect: (category: LibraryCategory) => void,
+): FilterController => {
   const filters: HTMLDivElement = document.createElement('div');
   filters.className = 'library-filters';
   filters.setAttribute('role', 'group');
   filters.setAttribute('aria-label', 'Game categories');
   filters.innerHTML = categories
     .map(
-      (category: string, index: number): string => `
+      (category: CategoryOption): string => `
         <button
-          class="library-filters__chip${index === 0 ? ' library-filters__chip--active' : ''}"
+          class="library-filters__chip"
           type="button"
-          data-category="${category}"
-          aria-pressed="${index === 0}"
+          data-category="${category.value}"
+          aria-pressed="false"
         >
-          ${category}
+          ${category.label}
         </button>
       `,
     )
     .join('');
 
-  return filters;
+  const setValue = (value: LibraryCategory): void => {
+    const chips: NodeListOf<HTMLButtonElement> =
+      filters.querySelectorAll<HTMLButtonElement>('[data-category]');
+    for (const chip of chips) {
+      const isActive: boolean = chip.dataset.category === value;
+      chip.classList.toggle('library-filters__chip--active', isActive);
+      chip.ariaPressed = String(isActive);
+    }
+  };
+
+  filters.addEventListener(
+    'click',
+    (event: MouseEvent): void => {
+      if (!(event.target instanceof Element)) {
+        return;
+      }
+
+      const selectedChip: HTMLButtonElement | null = event.target.closest(
+        'button[data-category]',
+      );
+      const selectedCategory: CategoryOption | undefined = categories.find(
+        (category: CategoryOption): boolean =>
+          category.value === selectedChip?.dataset.category,
+      );
+      if (selectedCategory !== undefined) {
+        onSelect(selectedCategory.value);
+      }
+    },
+    { signal },
+  );
+
+  return { element: filters, setValue };
 };
 
-const createSortControl = (signal: AbortSignal): HTMLElement => {
+const createSortControl = (
+  signal: AbortSignal,
+  onSelect: (sort: GameSort) => void,
+): SortController => {
   const sort: HTMLDivElement = document.createElement('div');
   sort.className = 'library-sort';
   sort.innerHTML = `
@@ -155,11 +213,11 @@ const createSortControl = (signal: AbortSignal): HTMLElement => {
           (option: SortOption): string => `
             <li role="presentation">
               <button
-                class="library-sort__option${option.value === defaultSortValue ? ' library-sort__option--active' : ''}"
+                class="library-sort__option"
                 type="button"
                 role="option"
                 data-sort-value="${option.value}"
-                aria-selected="${option.value === defaultSortValue}"
+                aria-selected="false"
               >
                 <span class="library-sort__check" aria-hidden="true">✓</span>
                 ${option.label}
@@ -180,7 +238,7 @@ const createSortControl = (signal: AbortSignal): HTMLElement => {
   const label: HTMLElement | null = sort.querySelector('[data-sort-label]');
 
   if (trigger === null || options === null || label === null) {
-    return sort;
+    return { element: sort, setValue: (): void => undefined };
   }
 
   const optionButtons: NodeListOf<HTMLButtonElement> =
@@ -201,23 +259,31 @@ const createSortControl = (signal: AbortSignal): HTMLElement => {
     }
   };
 
-  const selectOption = (selectedButton: HTMLButtonElement): void => {
-    const selectedValue: string | undefined = selectedButton.dataset.sortValue;
-    const selectedOption: SortOption | undefined = sortOptions.find(
-      (option: SortOption): boolean => option.value === selectedValue,
-    );
-
-    if (selectedOption === undefined) {
-      return;
-    }
-
+  const setValue = (value: GameSort): void => {
+    const selectedOption: SortOption =
+      sortOptions.find(
+        (option: SortOption): boolean => option.value === value,
+      ) ?? sortOptions[0];
     for (const optionButton of optionButtons) {
-      const isSelected: boolean = optionButton === selectedButton;
+      const isSelected: boolean =
+        optionButton.dataset.sortValue === selectedOption.value;
       optionButton.classList.toggle('library-sort__option--active', isSelected);
       optionButton.ariaSelected = String(isSelected);
     }
 
     label.textContent = selectedOption.label;
+  };
+
+  const selectOption = (selectedButton: HTMLButtonElement): void => {
+    const selectedOption: SortOption | undefined = sortOptions.find(
+      (option: SortOption): boolean =>
+        option.value === selectedButton.dataset.sortValue,
+    );
+    if (selectedOption === undefined) {
+      return;
+    }
+
+    onSelect(selectedOption.value);
     setOpen(false);
     trigger.focus();
   };
@@ -329,7 +395,7 @@ const createSortControl = (signal: AbortSignal): HTMLElement => {
     { signal },
   );
 
-  return sort;
+  return { element: sort, setValue };
 };
 
 const createGameCard = (game: LibraryGame): HTMLElement => {
@@ -361,7 +427,10 @@ const createGameCard = (game: LibraryGame): HTMLElement => {
   return card;
 };
 
-const createPagination = (signal: AbortSignal): HTMLElement => {
+const createPagination = (
+  signal: AbortSignal,
+  onSelect: (page: number) => void,
+): PaginationController => {
   const totalPages: number = 4;
   let currentPage: number = 1;
   const pagination: HTMLElement = document.createElement('nav');
@@ -393,10 +462,10 @@ const createPagination = (signal: AbortSignal): HTMLElement => {
 
   const updateState = (): void => {
     if (previousButton !== null) {
-      previousButton.disabled = currentPage === 1;
+      previousButton.disabled = currentPage <= 1;
     }
     if (nextButton !== null) {
-      nextButton.disabled = currentPage === totalPages;
+      nextButton.disabled = currentPage >= totalPages;
     }
 
     const mobileWindowStart: number = currentPage <= 2 ? 1 : 2;
@@ -433,33 +502,29 @@ const createPagination = (signal: AbortSignal): HTMLElement => {
       }
 
       if (button.dataset.page !== undefined) {
-        currentPage = Number(button.dataset.page);
+        onSelect(Number(button.dataset.page));
       } else if (button.dataset.pageDirection === 'previous') {
-        currentPage = Math.max(1, currentPage - 1);
+        onSelect(Math.max(1, currentPage - 1));
       } else if (button.dataset.pageDirection === 'next') {
-        currentPage = Math.min(totalPages, currentPage + 1);
+        onSelect(Math.min(totalPages, currentPage + 1));
       }
-
-      updateState();
     },
     { signal },
   );
 
-  updateState();
-  return pagination;
+  return {
+    element: pagination,
+    setPage: (page: number): void => {
+      currentPage = page;
+      updateState();
+    },
+  };
 };
 
-const dispatchGameDetailsRequest = (slug: string): void => {
-  const event: CustomEvent<GameDetailsRequestDetail> =
-    new CustomEvent<GameDetailsRequestDetail>(GAME_DETAILS_OPEN_EVENT, {
-      detail: { slug },
-    });
-  document.dispatchEvent(event);
-};
-
-export const libraryPage = (): RouteView => {
+export const libraryPage = (initialContext: RouteContext): RouteView => {
   const eventController: AbortController = new AbortController();
   const { signal } = eventController;
+  let context: RouteContext = initialContext;
   const section: HTMLElement = document.createElement('section');
   section.className = 'library';
   section.setAttribute('aria-labelledby', 'library-title');
@@ -478,38 +543,38 @@ export const libraryPage = (): RouteView => {
     section.querySelector('.library__controls');
   const gamesContainer: HTMLElement | null =
     section.querySelector('.library__games');
-  const filters: HTMLElement = createFilterChips();
+  const filters: FilterController = createFilterChips(
+    signal,
+    (category: LibraryCategory): void => {
+      if (category !== context.state.category) {
+        context.navigate(updateUrlState(context.url, { category, page: 1 }));
+      }
+    },
+  );
+  const sort: SortController = createSortControl(
+    signal,
+    (sortValue: GameSort): void => {
+      if (sortValue !== context.state.sort) {
+        context.navigate(
+          updateUrlState(context.url, { page: 1, sort: sortValue }),
+        );
+      }
+    },
+  );
+  const pagination: PaginationController = createPagination(
+    signal,
+    (page: number): void => {
+      if (page !== context.state.page) {
+        context.navigate(updateUrlState(context.url, { page }));
+      }
+    },
+  );
 
-  controls?.append(filters, createSortControl(signal));
+  controls?.append(filters.element, sort.element);
   gamesContainer?.append(
     ...games.map((game: LibraryGame): HTMLElement => createGameCard(game)),
   );
-  section.querySelector('.library__inner')?.append(createPagination(signal));
-
-  filters.addEventListener(
-    'click',
-    (event: MouseEvent): void => {
-      if (!(event.target instanceof Element)) {
-        return;
-      }
-
-      const selectedChip: HTMLButtonElement | null = event.target.closest(
-        'button[data-category]',
-      );
-      if (selectedChip === null) {
-        return;
-      }
-
-      const chips: NodeListOf<HTMLButtonElement> =
-        filters.querySelectorAll<HTMLButtonElement>('[data-category]');
-      for (const chip of chips) {
-        const isActive: boolean = chip === selectedChip;
-        chip.classList.toggle('library-filters__chip--active', isActive);
-        chip.ariaPressed = String(isActive);
-      }
-    },
-    { signal },
-  );
+  section.querySelector('.library__inner')?.append(pagination.element);
 
   gamesContainer?.addEventListener(
     'click',
@@ -529,10 +594,20 @@ export const libraryPage = (): RouteView => {
     { signal },
   );
 
+  const synchronize = (nextContext: RouteContext): void => {
+    context = nextContext;
+    filters.setValue(context.state.category);
+    sort.setValue(context.state.sort);
+    pagination.setPage(context.state.page);
+  };
+
+  synchronize(initialContext);
+
   return {
     content: section,
     dispose: (): void => {
       eventController.abort();
     },
+    update: synchronize,
   };
 };

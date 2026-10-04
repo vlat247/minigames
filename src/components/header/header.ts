@@ -1,8 +1,7 @@
 import './header.scss';
 import {
-  AUTH_DIALOG_OPEN_EVENT,
-  type AuthDialogRequestDetail,
   type AuthMode,
+  dispatchAuthDialogRequest,
 } from '../dialogs/auth-dialog-events';
 import { getAppPath } from '../../utils/paths';
 
@@ -12,15 +11,6 @@ export interface HeaderController {
   readonly element: HTMLElement;
   readonly setActivePath: (path: string) => void;
 }
-
-const dispatchAuthRequest = (mode: AuthMode): void => {
-  const event: CustomEvent<AuthDialogRequestDetail> =
-    new CustomEvent<AuthDialogRequestDetail>(AUTH_DIALOG_OPEN_EVENT, {
-      detail: { mode },
-    });
-
-  document.dispatchEvent(event);
-};
 
 export const createHeader = (): HeaderController => {
   const homePath: string = getAppPath('/');
@@ -175,7 +165,7 @@ export const createHeader = (): HeaderController => {
         if (menuToggle.getAttribute('aria-expanded') === 'true') {
           setMenuOpen(false);
         }
-        dispatchAuthRequest(mode);
+        dispatchAuthDialogRequest(mode);
         return;
       }
 
