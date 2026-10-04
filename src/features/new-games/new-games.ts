@@ -1,8 +1,5 @@
 import { createSectionHeading } from '../../components/section-heading/section-heading';
-import {
-  GAME_DETAILS_OPEN_EVENT,
-  type GameDetailsRequestDetail,
-} from '../../components/dialogs/game-details-events';
+import { dispatchGameDetailsRequest } from '../../components/dialogs/game-details-events';
 import { getAppPath } from '../../utils/paths';
 import { featuredGames, type FeaturedGame } from './new-games-data';
 import './new-games.scss';
@@ -538,15 +535,10 @@ export const createNewGamesSection = (): NewGamesSectionController => {
         return;
       }
 
-      const detail: GameDetailsRequestDetail = { slug: game.slug };
       if (gameDetailsDialog !== null) {
         pauseAutoplay();
       }
-      document.dispatchEvent(
-        new CustomEvent<GameDetailsRequestDetail>(GAME_DETAILS_OPEN_EVENT, {
-          detail,
-        }),
-      );
+      dispatchGameDetailsRequest(game.slug);
     },
     { signal },
   );

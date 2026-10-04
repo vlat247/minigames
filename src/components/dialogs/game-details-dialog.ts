@@ -1,4 +1,4 @@
-import { GAME_DETAILS_OPEN_EVENT } from './game-details-events';
+import { dispatchGameDetailsCloseRequest } from './game-details-events';
 import { getAppPath } from '../../utils/paths';
 import './game-details-dialog.scss';
 
@@ -28,6 +28,7 @@ interface GameRecord {
 export interface GameDetailsDialogController {
   readonly destroy: () => void;
   readonly element: HTMLDialogElement;
+  readonly synchronize: (slug: string | undefined) => void;
 }
 
 const records: readonly GameRecord[] = [
@@ -257,7 +258,9 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
 
     dialog.close();
     dialog.classList.remove('game-details-dialog--closing');
-    document.body.classList.remove('dialog-open');
+    if (document.querySelector('dialog[open]') === null) {
+      document.body.classList.remove('dialog-open');
+    }
     returnFocusElement?.focus();
     returnFocusElement = null;
   };
@@ -278,7 +281,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
     );
   };
 
-  const openDialog = (): void => {
+  const openDialog = (slug: string): void => {
     if (closeTimer !== undefined) {
       globalThis.clearTimeout(closeTimer);
       closeTimer = undefined;
@@ -289,6 +292,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
     }
 
     resetTransientState();
+    dialog.dataset.gameSlug = slug;
     dialog.scrollTop = 0;
 
     if (dialog.open) {
@@ -339,7 +343,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
       }
 
       if (event.target.closest('[data-dialog-close]') !== null) {
-        closeDialog();
+        dispatchGameDetailsCloseRequest();
         return;
       }
 
@@ -367,7 +371,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
         event.clientY >= bounds.top &&
         event.clientY <= bounds.bottom;
       if (!isInsideDialog) {
-        closeDialog();
+        dispatchGameDetailsCloseRequest();
       }
     },
     { signal },
@@ -377,7 +381,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
     'cancel',
     (event: Event): void => {
       event.preventDefault();
-      closeDialog();
+      dispatchGameDetailsCloseRequest();
     },
     { signal },
   );
@@ -407,8 +411,6 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
     { signal },
   );
 
-  document.addEventListener(GAME_DETAILS_OPEN_EVENT, openDialog, { signal });
-
   return {
     destroy: (): void => {
       eventController.abort();
@@ -421,13 +423,25 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
       if (dialog.open) {
         dialog.close();
       }
+      delete dialog.dataset.gameSlug;
       dialog.classList.remove(
         'game-details-dialog--closing',
         'game-details-dialog--visible',
       );
-      document.body.classList.remove('dialog-open');
+      if (document.querySelector('dialog[open]') === null) {
+        document.body.classList.remove('dialog-open');
+      }
       returnFocusElement = null;
     },
     element: dialog,
+    synchronize: (slug: string | undefined): void => {
+      if (slug === undefined) {
+        delete dialog.dataset.gameSlug;
+        closeDialog();
+        return;
+      }
+
+      openDialog(slug);
+    },
   };
 };

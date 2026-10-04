@@ -1,5 +1,6 @@
 import '../styles/main.scss';
 import { createAppShell, type AppShell } from './app-shell';
+import { connectDialogRouting } from './dialog-routing';
 import { Router } from './router';
 import { homePage } from '../pages/home/home';
 import { libraryPage } from '../pages/library/library';
@@ -23,9 +24,14 @@ const initializeApp = (): void => {
   router.addRoute('/', homePage);
   router.addRoute('/library', libraryPage);
   router.addRoute('*', notFoundPage);
+  const disconnectDialogRouting: () => void = connectDialogRouting(
+    router,
+    shell,
+  );
   router.start();
 
   import.meta.hot?.dispose((): void => {
+    disconnectDialogRouting();
     router.stop();
     shell.destroy();
     rootElement.remove();
