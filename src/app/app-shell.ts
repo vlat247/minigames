@@ -6,6 +6,10 @@ import {
   createSnackbar,
   type SnackbarController,
 } from '../components/snackbar/snackbar';
+import {
+  isSnackbarRequestDetail,
+  SNACKBAR_SHOW_EVENT,
+} from '../components/snackbar/snackbar-events';
 import type { UrlState } from './url-state';
 
 export interface AppShell {
@@ -17,6 +21,8 @@ export interface AppShell {
 }
 
 export const createAppShell = (rootElement: HTMLElement): AppShell => {
+  const eventController: AbortController = new AbortController();
+  const { signal } = eventController;
   const header = createHeader();
   const authDialog = createAuthDialog();
   const gameDetailsDialog = createGameDetailsDialog();
@@ -33,8 +39,21 @@ export const createAppShell = (rootElement: HTMLElement): AppShell => {
     notifications.element,
   );
 
+  document.addEventListener(
+    SNACKBAR_SHOW_EVENT,
+    (event: Event): void => {
+      const detail: unknown =
+        event instanceof CustomEvent ? event.detail : undefined;
+      if (isSnackbarRequestDetail(detail)) {
+        notifications.show(detail);
+      }
+    },
+    { signal },
+  );
+
   return {
     destroy: (): void => {
+      eventController.abort();
       header.destroy();
       authDialog.destroy();
       gameDetailsDialog.destroy();

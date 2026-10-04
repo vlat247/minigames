@@ -13,8 +13,11 @@
     display: inline;
   }
 
-  &__table-wrapper {
+  &__content {
     margin-top: $space-2;
+  }
+
+  &__table-wrapper {
     overflow: hidden;
     border: $border-width-card solid $color-ink;
     border-radius: $radius-md;
@@ -147,8 +150,11 @@
   @include tablet-up {
     padding: $space-3 $space-5;
 
-    &__table-wrapper {
+    &__content {
       margin-top: $space-3;
+    }
+
+    &__table-wrapper {
       border-radius: $radius-lg;
       box-shadow: $shadow-medium;
     }
@@ -202,10 +208,6 @@
 
     .section-heading__title-compact {
       display: none;
-    }
-
-    &__table-wrapper {
-      margin-top: $space-3;
     }
 
     &__table {

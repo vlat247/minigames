@@ -7,15 +7,19 @@ import { createDeveloperCta } from '../../components/developer-cta/developer-cta
 export const homePage = (): RouteView => {
   const content: DocumentFragment = document.createDocumentFragment();
   const newGames = createNewGamesSection();
+  const leaderboard = createLeaderboardSection();
   content.append(
     createHeroSection(),
     newGames.element,
-    createLeaderboardSection(),
+    leaderboard.element,
     createDeveloperCta(),
   );
 
   return {
     content,
-    dispose: newGames.destroy,
+    dispose: (): void => {
+      newGames.destroy();
+      leaderboard.destroy();
+    },
   };
 };
