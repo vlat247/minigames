@@ -2,7 +2,7 @@
 @use '../../styles/abstracts/mixins' as *;
 
 .game-details-dialog {
-  width: min($game-details-dialog-width, 100vw);
+  width: min($game-details-dialog-width, calc(100vw - #{$dialog-viewport-gap}));
   max-width: $game-details-dialog-width;
   max-height: calc(100dvh - #{$dialog-viewport-gap});
   margin: auto;
@@ -28,7 +28,7 @@
 
   &--visible {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: none;
   }
 
   &--visible::backdrop {
@@ -54,6 +54,7 @@
 
   &__close {
     position: absolute;
+    z-index: 1;
     top: $space-2;
     right: $space-2;
     display: grid;
@@ -84,6 +85,16 @@
     display: grid;
     gap: $space-3;
     padding: $space-3;
+  }
+
+  &__details > .async-state--error,
+  &__details > .async-state--empty {
+    width: calc(100% - #{$space-6});
+    margin: $space-3;
+  }
+
+  &__comments {
+    padding: 0 $space-3 $space-3;
   }
 
   @include tablet-up {
@@ -166,6 +177,11 @@
 
     [data-favorite-label] {
       display: none;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.68;
     }
 
     &--active {
@@ -271,86 +287,6 @@
   }
 }
 
-.game-comment-form {
-  display: grid;
-  grid-template-columns:
-    $space-5 minmax(0, 1fr)
-    $game-comment-submit-size;
-  gap: $space-2;
-  align-items: center;
-
-  > .game-avatar {
-    width: $space-5;
-    height: $space-5;
-  }
-
-  &__field {
-    display: block;
-  }
-
-  &__label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
-  textarea {
-    display: block;
-    width: 100%;
-    min-height: $space-6;
-    max-height: $game-comment-textarea-max-height;
-    resize: none;
-    padding: $space-1 $space-2;
-    overflow-y: hidden;
-    border: $border-width-default solid $color-ink;
-    border-radius: $radius-sm;
-    outline: 0;
-    background: $color-surface;
-    color: $color-ink;
-    font: inherit;
-    font-size: $font-size-xs;
-    line-height: $line-height-body;
-
-    &::placeholder {
-      color: $color-text-muted;
-      opacity: 1;
-    }
-
-    &:focus {
-      box-shadow: $focus-ring;
-    }
-  }
-
-  &__submit {
-    display: grid;
-    width: $game-comment-submit-size;
-    height: $game-comment-submit-size;
-    place-items: center;
-    padding: 0;
-    border: $border-width-default solid $color-ink;
-    border-radius: $radius-sm;
-    background: $color-footer-low;
-    color: $color-white;
-    cursor: pointer;
-    transition:
-      background-color $transition-fast,
-      transform $transition-fast;
-
-    &:active {
-      transform: translateY($border-width-default);
-    }
-
-    .material-symbols-rounded {
-      font-size: $font-size-lg;
-    }
-  }
-}
-
 .game-avatar {
   display: grid;
   width: $game-comment-avatar-size;
@@ -427,7 +363,6 @@
     background: transparent;
     color: $color-ink;
     font-size: $font-size-2xs;
-    cursor: pointer;
 
     &-icon {
       width: $font-size-sm;
@@ -436,34 +371,12 @@
       filter: grayscale(1) brightness(0.35);
       object-fit: contain;
     }
-
-    &--active {
-      color: $color-error;
-
-      .game-comment__like-icon {
-        filter: none;
-      }
-    }
   }
 }
 
 @include hover-capable {
-  .game-details-dialog__close:hover,
-  .game-info__favorite:hover {
+  .game-details-dialog__close:hover {
     background: $color-hover;
-  }
-
-  .game-comment-form__submit:hover {
-    background: $color-hover;
-    color: $color-ink;
-  }
-
-  .game-comment__like:hover {
-    color: $color-error;
-
-    .game-comment__like-icon {
-      filter: none;
-    }
   }
 }
 
