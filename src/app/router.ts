@@ -13,6 +13,7 @@ export interface RouteContext {
   readonly navigationType: NavigationType;
   readonly path: string;
   readonly routePath: string;
+  readonly sourceUrl: URL;
   readonly state: UrlState;
   readonly url: URL;
 }
@@ -140,6 +141,7 @@ export class Router {
       navigationType,
       path: normalizedPath,
       routePath: isFallback ? '*' : route.path,
+      sourceUrl: new URL(url),
       state: parseUrlState(canonicalUrl),
       url: new URL(canonicalUrl),
     };
