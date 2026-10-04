@@ -1,0 +1,136 @@
+@use '../../styles/abstracts/tokens' as *;
+@use '../../styles/abstracts/mixins' as *;
+
+.snackbar-region {
+  position: fixed;
+  z-index: $z-index-menu + 10;
+  right: 0;
+  bottom: env(safe-area-inset-bottom, 0);
+  left: 0;
+  display: grid;
+  justify-items: center;
+  padding: $space-2;
+  pointer-events: none;
+
+  @include tablet-up {
+    justify-items: end;
+    padding: $space-3 $space-5;
+  }
+}
+
+.snackbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) $space-4;
+  gap: $space-2;
+  align-items: center;
+  width: min(100%, 440px);
+  min-height: $space-8;
+  padding: $space-2;
+  border: $border-width-default solid $color-ink;
+  border-left-width: $space-1;
+  border-radius: $radius-sm;
+  background: $color-surface;
+  box-shadow: $shadow-small;
+  color: $color-ink;
+  opacity: 0;
+  pointer-events: auto;
+  transform: translateY($space-1);
+  transition:
+    opacity $transition-fast,
+    transform $transition-fast;
+
+  &--success {
+    border-left-color: $color-success;
+  }
+
+  &--error {
+    border-left-color: $color-error;
+  }
+
+  &--visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  &__content {
+    display: grid;
+    min-width: 0;
+    gap: $space-0-5;
+  }
+
+  &__label,
+  &__message {
+    margin: 0;
+  }
+
+  &__label {
+    font-size: $font-size-xs;
+    font-weight: $font-weight-bold;
+    line-height: $line-height-heading;
+  }
+
+  &--success &__label {
+    color: $color-success;
+  }
+
+  &--error &__label {
+    color: $color-error;
+  }
+
+  &__message {
+    color: $color-text;
+    font-size: $font-size-xs;
+    line-height: $line-height-body;
+    overflow-wrap: anywhere;
+  }
+
+  &__close {
+    position: relative;
+    display: grid;
+    width: $space-4;
+    height: $space-4;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: $radius-xs;
+    background: transparent;
+    color: $color-ink;
+    cursor: pointer;
+    transition: background-color $transition-fast;
+
+    &::before,
+    &::after {
+      position: absolute;
+      width: $font-size-sm;
+      height: $border-width-default;
+      border-radius: $radius-round;
+      background: currentcolor;
+      content: '';
+    }
+
+    &::before {
+      transform: rotate(45deg);
+    }
+
+    &::after {
+      transform: rotate(-45deg);
+    }
+
+    &:focus-visible {
+      outline: $border-width-heavy solid $color-tertiary;
+      outline-offset: $space-0-5;
+    }
+  }
+}
+
+@include hover-capable {
+  .snackbar__close:hover {
+    background: $color-hover;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .snackbar {
+    transition-duration: $motion-reduced-duration;
+  }
+}
