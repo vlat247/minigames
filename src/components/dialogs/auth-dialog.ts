@@ -1,7 +1,7 @@
 import {
-  AUTH_DIALOG_OPEN_EVENT,
   type AuthMode,
-  isAuthDialogRequestDetail,
+  dispatchAuthDialogCloseRequest,
+  dispatchAuthDialogRequest,
 } from './auth-dialog-events';
 import { getAppPath } from '../../utils/paths';
 import './auth-dialog.scss';
@@ -12,6 +12,7 @@ const googleIconPath: string = getAppPath('/assets/icons/google.svg');
 export interface AuthDialogController {
   readonly destroy: () => void;
   readonly element: HTMLDialogElement;
+  readonly synchronize: (mode: AuthMode | undefined) => void;
 }
 
 const loginPanelMarkup: string = `
@@ -159,6 +160,7 @@ export const createAuthDialog = (): AuthDialogController => {
         eventController.abort();
       },
       element: dialog,
+      synchronize: (): void => undefined,
     };
   }
 
@@ -195,7 +197,9 @@ export const createAuthDialog = (): AuthDialogController => {
 
     dialog.close();
     dialog.classList.remove('auth-dialog--closing');
-    document.body.classList.remove('dialog-open');
+    if (document.querySelector('dialog[open]') === null) {
+      document.body.classList.remove('dialog-open');
+    }
     returnFocusElement?.focus();
     returnFocusElement = null;
   };
@@ -223,10 +227,18 @@ export const createAuthDialog = (): AuthDialogController => {
       openAnimationFrame = undefined;
     }
 
+    const selectedTab: HTMLButtonElement =
+      mode === 'login' ? loginTab : registerTab;
+    const shouldMoveFocus: boolean =
+      !dialog.open || selectedTab.getAttribute('aria-selected') !== 'true';
+
     setMode(mode);
     if (dialog.open) {
       dialog.classList.remove('auth-dialog--closing');
       document.body.classList.add('dialog-open');
+      if (shouldMoveFocus) {
+        selectedTab.focus({ preventScroll: true });
+      }
       openAnimationFrame = globalThis.requestAnimationFrame((): void => {
         dialog.classList.add('auth-dialog--visible');
         openAnimationFrame = undefined;
@@ -239,6 +251,7 @@ export const createAuthDialog = (): AuthDialogController => {
         ? document.activeElement
         : null;
     dialog.showModal();
+    selectedTab.focus({ preventScroll: true });
     document.body.classList.add('dialog-open');
     openAnimationFrame = globalThis.requestAnimationFrame((): void => {
       dialog.classList.add('auth-dialog--visible');
@@ -257,7 +270,7 @@ export const createAuthDialog = (): AuthDialogController => {
         'button[data-auth-view]',
       );
       if (viewButton !== null) {
-        setMode(
+        dispatchAuthDialogRequest(
           viewButton.dataset.authView === 'register' ? 'register' : 'login',
         );
         return;
@@ -303,7 +316,7 @@ export const createAuthDialog = (): AuthDialogController => {
         event.clientY >= bounds.top &&
         event.clientY <= bounds.bottom;
       if (!isInsideDialog) {
-        closeDialog();
+        dispatchAuthDialogCloseRequest();
       }
     },
     { signal },
@@ -313,20 +326,7 @@ export const createAuthDialog = (): AuthDialogController => {
     'cancel',
     (event: Event): void => {
       event.preventDefault();
-      closeDialog();
-    },
-    { signal },
-  );
-
-  dialog.addEventListener(
-    'keydown',
-    (event: KeyboardEvent): void => {
-      if (event.key !== 'Escape') {
-        return;
-      }
-
-      event.preventDefault();
-      closeDialog();
+      dispatchAuthDialogCloseRequest();
     },
     { signal },
   );
@@ -343,22 +343,6 @@ export const createAuthDialog = (): AuthDialogController => {
     );
   }
 
-  document.addEventListener(
-    AUTH_DIALOG_OPEN_EVENT,
-    (event: Event): void => {
-      if (!(event instanceof CustomEvent)) {
-        return;
-      }
-
-      const customEvent: CustomEvent<unknown> = event as CustomEvent<unknown>;
-      const detail: unknown = customEvent.detail;
-      if (isAuthDialogRequestDetail(detail)) {
-        openDialog(detail.mode);
-      }
-    },
-    { signal },
-  );
-
   return {
     destroy: (): void => {
       eventController.abort();
@@ -372,9 +356,19 @@ export const createAuthDialog = (): AuthDialogController => {
         dialog.close();
       }
       dialog.classList.remove('auth-dialog--closing', 'auth-dialog--visible');
-      document.body.classList.remove('dialog-open');
+      if (document.querySelector('dialog[open]') === null) {
+        document.body.classList.remove('dialog-open');
+      }
       returnFocusElement = null;
     },
     element: dialog,
+    synchronize: (mode: AuthMode | undefined): void => {
+      if (mode === undefined) {
+        closeDialog();
+        return;
+      }
+
+      openDialog(mode);
+    },
   };
 };

@@ -1,10 +1,15 @@
-import { createSectionHeading } from '../../components/section-heading/section-heading';
 import {
-  GAME_DETAILS_OPEN_EVENT,
-  type GameDetailsRequestDetail,
-} from '../../components/dialogs/game-details-events';
+  createBlockErrorState,
+  createEmptyState,
+  createSkeletonState,
+} from '../../components/async-state/async-state';
+import { createSectionHeading } from '../../components/section-heading/section-heading';
+import { dispatchGameDetailsRequest } from '../../components/dialogs/game-details-events';
+import { dispatchSnackbar } from '../../components/snackbar/snackbar-events';
+import { isApiAbortError } from '../../services/api-client';
+import { fetchFeaturedGames } from '../../services/minigames-api';
+import type { GameSummary } from '../../types/api';
 import { getAppPath } from '../../utils/paths';
-import { featuredGames, type FeaturedGame } from './new-games-data';
 import './new-games.scss';
 
 const INITIAL_ACTIVE_GAME_INDEX: number = 2;
@@ -18,6 +23,10 @@ const SYNTHETIC_CLICK_SUPPRESSION_MS: number = 500;
 const DESKTOP_LAYOUT_MEDIA_QUERY: string = '(min-width: 1280px)';
 const heartIconPath: string = getAppPath('/assets/icons/heart.png');
 const starIconPath: string = getAppPath('/assets/icons/star.png');
+const likesFormatter: Intl.NumberFormat = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 1,
+  notation: 'compact',
+});
 
 type CarouselDirection = 'next' | 'previous';
 
@@ -32,10 +41,10 @@ export interface NewGamesSectionController {
 }
 
 const carouselPositions: readonly CarouselPosition[] = [
-  { className: 'game-card--far-previous', offset: -2 },
-  { className: 'game-card--previous', offset: -1 },
   { className: 'game-card--active', offset: 0 },
+  { className: 'game-card--previous', offset: -1 },
   { className: 'game-card--next', offset: 1 },
+  { className: 'game-card--far-previous', offset: -2 },
   { className: 'game-card--far-next', offset: 2 },
 ];
 
@@ -43,8 +52,8 @@ const carouselPositionClassNames: readonly string[] = carouselPositions.map(
   (position: CarouselPosition): string => position.className,
 );
 
-const getLoopedIndex = (index: number): number => {
-  return (index + featuredGames.length) % featuredGames.length;
+const getLoopedIndex = (index: number, itemCount: number): number => {
+  return (index + itemCount) % itemCount;
 };
 
 const createCarouselControls = (): HTMLElement => {
@@ -63,24 +72,63 @@ const createCarouselControls = (): HTMLElement => {
 };
 
 const createGameCard = (
-  game: FeaturedGame,
+  game: GameSummary,
   index: number,
 ): HTMLButtonElement => {
   const card: HTMLButtonElement = document.createElement('button');
+  const image: HTMLImageElement = document.createElement('img');
+  const info: HTMLSpanElement = document.createElement('span');
+  const title: HTMLSpanElement = document.createElement('span');
+  const meta: HTMLSpanElement = document.createElement('span');
+  const rating: HTMLSpanElement = document.createElement('span');
+  const ratingIcon: HTMLImageElement = document.createElement('img');
+  const likes: HTMLSpanElement = document.createElement('span');
+  const likesIcon: HTMLImageElement = document.createElement('img');
+  const displayName: string = game.name.trim() || 'Untitled game';
+  const displayRating: string = Number.isFinite(game.rating)
+    ? game.rating.toFixed(1)
+    : 'Not rated';
+  const displayLikes: string = Number.isFinite(game.likesCount)
+    ? likesFormatter.format(game.likesCount)
+    : '0';
+
   card.className = 'game-card';
   card.type = 'button';
   card.dataset.gameIndex = String(index);
-  card.setAttribute('aria-label', `Open details for ${game.name}`);
-  card.innerHTML = `
-    <img class="game-card__image" src="${getAppPath(game.image)}" alt="${game.name}" draggable="false" />
-    <span class="game-card__info">
-      <span class="game-card__title" title="${game.name}">${game.name}</span>
-      <span class="game-card__meta">
-        <span role="img" aria-label="Rated ${game.rating} out of 5"><img class="game-card__meta-icon" src="${starIconPath}" alt="" aria-hidden="true" />${game.rating}</span>
-        <span role="img" aria-label="${game.likes} likes"><img class="game-card__meta-icon" src="${heartIconPath}" alt="" aria-hidden="true" />${game.likes}</span>
-      </span>
-    </span>
-  `;
+  card.dataset.gameSlug = game.slug;
+  card.setAttribute('aria-label', `Open details for ${displayName}`);
+
+  image.alt = displayName;
+  image.className = 'game-card__image';
+  image.decoding = 'async';
+  image.draggable = false;
+  image.src = getAppPath(game.cardImage);
+
+  info.className = 'game-card__info';
+  title.className = 'game-card__title';
+  title.textContent = displayName;
+  title.title = displayName;
+  meta.className = 'game-card__meta';
+
+  rating.setAttribute('aria-label', `Rated ${displayRating} out of 5`);
+  rating.setAttribute('role', 'img');
+  ratingIcon.alt = '';
+  ratingIcon.ariaHidden = 'true';
+  ratingIcon.className = 'game-card__meta-icon';
+  ratingIcon.src = starIconPath;
+  rating.append(ratingIcon, displayRating);
+
+  likes.setAttribute('aria-label', `${displayLikes} likes`);
+  likes.setAttribute('role', 'img');
+  likesIcon.alt = '';
+  likesIcon.ariaHidden = 'true';
+  likesIcon.className = 'game-card__meta-icon';
+  likesIcon.src = heartIconPath;
+  likes.append(likesIcon, displayLikes);
+
+  meta.append(rating, likes);
+  info.append(title, meta);
+  card.append(image, info);
 
   return card;
 };
@@ -162,13 +210,11 @@ export const createNewGamesSection = (): NewGamesSectionController => {
   track.setAttribute('role', 'region');
   track.setAttribute('aria-roledescription', 'carousel');
   track.setAttribute('aria-label', 'New games preview');
-  const cards: HTMLButtonElement[] = featuredGames.map(
-    (game: FeaturedGame, index: number): HTMLButtonElement =>
-      createGameCard(game, index),
-  );
-  track.append(...cards);
 
   const controls: HTMLElement = createCarouselControls();
+  const controlButtons: NodeListOf<HTMLButtonElement> =
+    controls.querySelectorAll('button[data-carousel-direction]');
+  const content: HTMLDivElement = document.createElement('div');
   const desktopLayoutMedia: MediaQueryList = globalThis.matchMedia(
     DESKTOP_LAYOUT_MEDIA_QUERY,
   );
@@ -177,21 +223,29 @@ export const createNewGamesSection = (): NewGamesSectionController => {
   );
   const outgoingCards = new Set<HTMLButtonElement>();
   const status: HTMLParagraphElement = document.createElement('p');
+  content.className = 'new-games__content';
   status.className = 'new-games__status';
-  status.setAttribute('aria-live', 'polite');
+  status.setAttribute('aria-live', 'off');
   status.setAttribute('aria-atomic', 'true');
-  let activeGameIndex: number = INITIAL_ACTIVE_GAME_INDEX;
+  let activeGameIndex: number = 0;
   let activePointerId: number | undefined;
   let autoplayDeadline: number = 0;
   let autoplayRemainingMs: number = AUTOPLAY_INTERVAL_MS;
   let autoplayTimer: number | undefined;
+  let cards: HTMLButtonElement[] = [];
   let clickSuppressionTimer: number | undefined;
+  let games: readonly GameSummary[] = [];
+  let isDestroyed: boolean = false;
+  let isFocusWithin: boolean = false;
+  let isPointerHovering: boolean = false;
   let pointerCaptureTarget: HTMLElement | undefined;
   let pointerCurrentX: number = 0;
   let pointerMaximumDistance: number = 0;
   let pointerStartX: number = 0;
   let pointerStartY: number = 0;
   let pointerStartedAt: number = 0;
+  let requestController: AbortController | undefined;
+  let requestSequence: number = 0;
 
   const cancelCarouselAnimations = (): void => {
     for (const card of cards) {
@@ -265,6 +319,7 @@ export const createNewGamesSection = (): NewGamesSectionController => {
 
   const synchronizeCardAccessibility = (): void => {
     const visibleRadius: number = desktopLayoutMedia.matches ? 2 : 1;
+    const positionedIndexes = new Set<number>();
 
     for (const card of cards) {
       card.ariaHidden = 'true';
@@ -272,13 +327,19 @@ export const createNewGamesSection = (): NewGamesSectionController => {
     }
 
     for (const position of carouselPositions) {
+      if (games.length === 0) {
+        break;
+      }
+
       const cardIndex: number = getLoopedIndex(
         activeGameIndex + position.offset,
+        games.length,
       );
       const card: HTMLButtonElement | undefined = cards[cardIndex];
-      if (card === undefined) {
+      if (card === undefined || positionedIndexes.has(cardIndex)) {
         continue;
       }
+      positionedIndexes.add(cardIndex);
 
       if (Math.abs(position.offset) <= visibleRadius) {
         card.ariaHidden = 'false';
@@ -292,9 +353,11 @@ export const createNewGamesSection = (): NewGamesSectionController => {
   const updateCardPositions = (
     direction?: CarouselDirection,
     outgoingCard?: HTMLButtonElement,
+    shouldAnnounceSlide: boolean = false,
   ): void => {
     cancelCarouselAnimations();
     const previousRects = new Map<HTMLButtonElement, DOMRect>();
+    const positionedIndexes = new Set<number>();
     if (direction !== undefined) {
       for (const card of cards) {
         if (card.ariaHidden !== 'true') {
@@ -309,13 +372,19 @@ export const createNewGamesSection = (): NewGamesSectionController => {
     }
 
     for (const position of carouselPositions) {
+      if (games.length === 0) {
+        break;
+      }
+
       const cardIndex: number = getLoopedIndex(
         activeGameIndex + position.offset,
+        games.length,
       );
       const card: HTMLButtonElement | undefined = cards[cardIndex];
-      if (card === undefined) {
+      if (card === undefined || positionedIndexes.has(cardIndex)) {
         continue;
       }
+      positionedIndexes.add(cardIndex);
 
       card.classList.add(position.className);
       if (position.offset === 0) {
@@ -324,9 +393,10 @@ export const createNewGamesSection = (): NewGamesSectionController => {
     }
     synchronizeCardAccessibility();
 
-    const activeGame: FeaturedGame | undefined = featuredGames[activeGameIndex];
+    const activeGame: GameSummary | undefined = games[activeGameIndex];
     if (activeGame !== undefined) {
-      status.textContent = `Slide ${activeGameIndex + 1} of ${featuredGames.length}: ${activeGame.name}`;
+      status.setAttribute('aria-live', shouldAnnounceSlide ? 'polite' : 'off');
+      status.textContent = `Slide ${activeGameIndex + 1} of ${games.length}: ${activeGame.name}`;
     }
 
     if (direction === undefined) {
@@ -344,16 +414,22 @@ export const createNewGamesSection = (): NewGamesSectionController => {
   const moveCarousel = (
     direction: CarouselDirection,
     shouldFocusActiveCard: boolean = false,
+    shouldAnnounceSlide: boolean = false,
   ): void => {
+    if (games.length <= 1) {
+      return;
+    }
+
     const visibleRadius: number = desktopLayoutMedia.matches ? 2 : 1;
     const outgoingOffset: number =
       direction === 'next' ? -visibleRadius : visibleRadius;
     const outgoingCard: HTMLButtonElement | undefined =
-      cards[getLoopedIndex(activeGameIndex + outgoingOffset)];
+      cards[getLoopedIndex(activeGameIndex + outgoingOffset, games.length)];
     activeGameIndex = getLoopedIndex(
       activeGameIndex + (direction === 'next' ? 1 : -1),
+      games.length,
     );
-    updateCardPositions(direction, outgoingCard);
+    updateCardPositions(direction, outgoingCard, shouldAnnounceSlide);
 
     if (shouldFocusActiveCard) {
       cards[activeGameIndex]?.focus({ preventScroll: true });
@@ -369,12 +445,32 @@ export const createNewGamesSection = (): NewGamesSectionController => {
     autoplayTimer = undefined;
   };
 
+  const canAutoplay = (): boolean => {
+    return (
+      !isDestroyed &&
+      games.length > 1 &&
+      activePointerId === undefined &&
+      !isFocusWithin &&
+      !isPointerHovering &&
+      document.visibilityState !== 'hidden' &&
+      gameDetailsDialog?.open !== true
+    );
+  };
+
   const scheduleAutoplay = (delay: number): void => {
     clearAutoplayTimer();
     autoplayRemainingMs = delay;
+    if (!canAutoplay()) {
+      return;
+    }
+
     autoplayDeadline = globalThis.performance.now() + delay;
     autoplayTimer = globalThis.setTimeout((): void => {
       autoplayTimer = undefined;
+      if (!canAutoplay()) {
+        return;
+      }
+
       moveCarousel('next');
       scheduleAutoplay(AUTOPLAY_INTERVAL_MS);
     }, delay);
@@ -393,7 +489,7 @@ export const createNewGamesSection = (): NewGamesSectionController => {
   };
 
   const resumeAutoplay = (): void => {
-    if (autoplayTimer !== undefined) {
+    if (autoplayTimer !== undefined || !canAutoplay()) {
       return;
     }
 
@@ -401,6 +497,7 @@ export const createNewGamesSection = (): NewGamesSectionController => {
   };
 
   const restartAutoplay = (): void => {
+    autoplayRemainingMs = AUTOPLAY_INTERVAL_MS;
     scheduleAutoplay(AUTOPLAY_INTERVAL_MS);
   };
 
@@ -483,9 +580,122 @@ export const createNewGamesSection = (): NewGamesSectionController => {
       return;
     }
 
-    moveCarousel(swipeDistance < 0 ? 'next' : 'previous');
+    moveCarousel(swipeDistance < 0 ? 'next' : 'previous', false, true);
     suppressNextCardClick();
     restartAutoplay();
+  };
+
+  const setCarouselControlsEnabled = (isEnabled: boolean): void => {
+    for (const button of controlButtons) {
+      button.disabled = !isEnabled;
+    }
+  };
+
+  const resetCarousel = (): void => {
+    clearAutoplayTimer();
+    clearCardClickSuppression();
+    clearPointerInteraction(true);
+    cancelCarouselAnimations();
+    autoplayRemainingMs = AUTOPLAY_INTERVAL_MS;
+    activeGameIndex = 0;
+    games = [];
+    cards = [];
+    status.textContent = '';
+    track.replaceChildren();
+  };
+
+  const renderLoadingState = (): void => {
+    resetCarousel();
+    setCarouselControlsEnabled(false);
+    content.replaceChildren(
+      createSkeletonState({
+        itemCount: 5,
+        label: 'Loading new games',
+        variant: 'cards',
+      }),
+    );
+  };
+
+  const renderErrorState = (): void => {
+    setCarouselControlsEnabled(false);
+    content.replaceChildren(
+      createBlockErrorState({
+        message: 'Check your connection, then try loading the games again.',
+        onRetry: (): void => {
+          void loadFeaturedGames();
+        },
+        title: "We couldn't load the new games",
+      }),
+    );
+  };
+
+  const renderEmptyState = (): void => {
+    setCarouselControlsEnabled(false);
+    content.replaceChildren(
+      createEmptyState({
+        message: 'Featured games will appear here when they are available.',
+        title: 'No new games yet',
+      }),
+    );
+  };
+
+  const renderGames = (nextGames: readonly GameSummary[]): void => {
+    games = nextGames;
+    cards = games.map((game: GameSummary, index: number): HTMLButtonElement =>
+      createGameCard(game, index),
+    );
+    activeGameIndex = Math.min(INITIAL_ACTIVE_GAME_INDEX, games.length - 1);
+    track.replaceChildren(...cards);
+    content.replaceChildren(status, track);
+    setCarouselControlsEnabled(games.length > 1);
+    updateCardPositions();
+    restartAutoplay();
+  };
+
+  const loadFeaturedGames = async (): Promise<void> => {
+    requestController?.abort();
+    const currentRequestController: AbortController = new AbortController();
+    const currentRequestSequence: number = requestSequence + 1;
+    requestController = currentRequestController;
+    requestSequence = currentRequestSequence;
+    renderLoadingState();
+
+    try {
+      const response = await fetchFeaturedGames({
+        signal: currentRequestController.signal,
+      });
+      if (
+        currentRequestSequence !== requestSequence ||
+        isDestroyed ||
+        currentRequestController.signal.aborted
+      ) {
+        return;
+      }
+
+      requestController = undefined;
+      if (response.data.length === 0) {
+        renderEmptyState();
+        return;
+      }
+
+      renderGames(response.data);
+    } catch (error: unknown) {
+      if (
+        currentRequestSequence !== requestSequence ||
+        isDestroyed ||
+        currentRequestController.signal.aborted ||
+        isApiAbortError(error)
+      ) {
+        return;
+      }
+
+      requestController = undefined;
+      renderErrorState();
+      dispatchSnackbar({
+        message: 'New games could not be loaded. Please try again.',
+        variant: 'error',
+      });
+    }
   };
 
   controls.addEventListener(
@@ -506,6 +716,8 @@ export const createNewGamesSection = (): NewGamesSectionController => {
         directionButton.dataset.carouselDirection === 'previous'
           ? 'previous'
           : 'next',
+        false,
+        true,
       );
       restartAutoplay();
     },
@@ -532,21 +744,15 @@ export const createNewGamesSection = (): NewGamesSectionController => {
         return;
       }
 
-      const gameIndex: number = Number(card.dataset.gameIndex);
-      const game: FeaturedGame | undefined = featuredGames[gameIndex];
-      if (game === undefined) {
+      const gameSlug: string | undefined = card.dataset.gameSlug;
+      if (gameSlug === undefined || gameSlug.length === 0) {
         return;
       }
 
-      const detail: GameDetailsRequestDetail = { slug: game.slug };
       if (gameDetailsDialog !== null) {
         pauseAutoplay();
       }
-      document.dispatchEvent(
-        new CustomEvent<GameDetailsRequestDetail>(GAME_DETAILS_OPEN_EVENT, {
-          detail,
-        }),
-      );
+      dispatchGameDetailsRequest(gameSlug);
     },
     { signal },
   );
@@ -559,8 +765,51 @@ export const createNewGamesSection = (): NewGamesSectionController => {
       }
 
       event.preventDefault();
-      moveCarousel(event.key === 'ArrowLeft' ? 'previous' : 'next', true);
+      moveCarousel(event.key === 'ArrowLeft' ? 'previous' : 'next', true, true);
       restartAutoplay();
+    },
+    { signal },
+  );
+
+  section.addEventListener(
+    'focusin',
+    (): void => {
+      isFocusWithin = true;
+      pauseAutoplay();
+    },
+    { signal },
+  );
+
+  section.addEventListener(
+    'focusout',
+    (event: FocusEvent): void => {
+      if (
+        event.relatedTarget instanceof Node &&
+        section.contains(event.relatedTarget)
+      ) {
+        return;
+      }
+
+      isFocusWithin = false;
+      resumeAutoplay();
+    },
+    { signal },
+  );
+
+  track.addEventListener(
+    'pointerenter',
+    (): void => {
+      isPointerHovering = true;
+      pauseAutoplay();
+    },
+    { signal },
+  );
+
+  track.addEventListener(
+    'pointerleave',
+    (): void => {
+      isPointerHovering = false;
+      resumeAutoplay();
     },
     { signal },
   );
@@ -665,6 +914,19 @@ export const createNewGamesSection = (): NewGamesSectionController => {
     { signal },
   );
 
+  document.addEventListener(
+    'visibilitychange',
+    (): void => {
+      if (document.visibilityState === 'hidden') {
+        pauseAutoplay();
+        return;
+      }
+
+      resumeAutoplay();
+    },
+    { signal },
+  );
+
   desktopLayoutMedia.addEventListener(
     'change',
     (): void => {
@@ -675,22 +937,23 @@ export const createNewGamesSection = (): NewGamesSectionController => {
 
   gameDetailsDialog?.addEventListener('close', resumeAutoplay, { signal });
 
-  updateCardPositions();
-
   section.append(
     createSectionHeading({
       controls,
       id: 'new-games-title',
       title: 'New Games',
     }),
-    status,
-    track,
+    content,
   );
 
-  scheduleAutoplay(AUTOPLAY_INTERVAL_MS);
+  void loadFeaturedGames();
 
   return {
     destroy: (): void => {
+      isDestroyed = true;
+      requestSequence += 1;
+      requestController?.abort();
+      requestController = undefined;
       eventController.abort();
       clearPointerInteraction(true);
       clearAutoplayTimer();
