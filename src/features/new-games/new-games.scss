@@ -11,6 +11,10 @@
     gap: $space-2;
   }
 
+  &__content {
+    margin-top: $space-2;
+  }
+
   &__arrow {
     display: grid;
     place-items: center;
@@ -57,7 +61,6 @@
       $carousel-edge-mobile minmax($carousel-main-mobile, 1fr)
       $carousel-edge-mobile;
     gap: $space-1;
-    margin-top: $space-2;
     cursor: grab;
     touch-action: pan-y;
     user-select: none;
@@ -89,8 +92,11 @@
       grid-template-columns:
         $carousel-edge-tablet minmax($carousel-main-tablet, 1fr)
         $carousel-edge-tablet;
-      margin-top: $space-3;
       padding-inline: $space-1;
+    }
+
+    &__content {
+      margin-top: $space-3;
     }
   }
 
@@ -110,6 +116,9 @@
         minmax($carousel-side-fluid-min, $carousel-side-desktop)
         minmax($carousel-edge-mobile, $carousel-edge-desktop);
       justify-content: center;
+    }
+
+    &__content {
       margin-top: $space-5;
     }
   }
