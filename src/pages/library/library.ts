@@ -1,23 +1,30 @@
 import type { RouteContext, RouteView } from '../../app/router';
 import {
+  isLibraryCategory,
   updateUrlState,
   type GameSort,
   type LibraryCategory,
 } from '../../app/url-state';
+import {
+  createBlockErrorState,
+  createEmptyState,
+  createSkeletonState,
+} from '../../components/async-state/async-state';
 import { dispatchGameDetailsRequest } from '../../components/dialogs/game-details-events';
+import { dispatchSnackbar } from '../../components/snackbar/snackbar-events';
+import { isApiAbortError } from '../../services/api-client';
+import {
+  fetchCategories,
+  fetchLibraryGames,
+  type LibraryGamesQuery,
+} from '../../services/minigames-api';
+import type { GameCategory, GameSummary } from '../../types/api';
 import { getAppPath } from '../../utils/paths';
+import {
+  createLibraryPagination,
+  type LibraryPaginationController,
+} from './library-pagination';
 import './library.scss';
-
-interface LibraryGame {
-  readonly category: string;
-  readonly description: string;
-  readonly image: string;
-  readonly likes: string;
-  readonly name: string;
-  readonly price: string;
-  readonly rating: number;
-  readonly slug: string;
-}
 
 interface SortOption {
   readonly label: string;
@@ -25,12 +32,20 @@ interface SortOption {
 }
 
 interface CategoryOption {
+  readonly isDefault: boolean;
   readonly label: string;
   readonly value: LibraryCategory;
 }
 
 interface FilterController {
   readonly element: HTMLElement;
+  readonly renderCategories: (
+    categories: readonly CategoryOption[],
+    value: LibraryCategory,
+  ) => void;
+  readonly renderEmpty: () => void;
+  readonly renderError: (onRetry: () => void) => void;
+  readonly renderLoading: () => void;
   readonly setValue: (value: LibraryCategory) => void;
 }
 
@@ -39,20 +54,11 @@ interface SortController {
   readonly setValue: (value: GameSort) => void;
 }
 
-interface PaginationController {
-  readonly element: HTMLElement;
-  readonly setPage: (page: number) => void;
-}
-
-const categories: readonly CategoryOption[] = [
-  { label: 'All Games', value: 'all' },
-  { label: 'Puzzle', value: 'puzzle' },
-  { label: 'Card', value: 'card' },
-  { label: 'Match', value: 'match' },
-  { label: 'Farm', value: 'farm' },
-  { label: 'Strategy', value: 'strategy' },
-  { label: 'Arcade', value: 'arcade' },
-];
+const LIBRARY_PAGE_SIZE: number = 6;
+const LIBRARY_ERROR_MESSAGE: string =
+  'The game library is unavailable right now. Please try again.';
+const CATEGORY_ERROR_MESSAGE: string =
+  'Game categories could not be loaded. Please try again.';
 
 const sortOptions: readonly SortOption[] = [
   { label: 'Rating ↓', value: 'rating-desc' },
@@ -63,102 +69,47 @@ const sortOptions: readonly SortOption[] = [
 
 const heartIconPath: string = getAppPath('/assets/icons/heart.png');
 const starIconPath: string = getAppPath('/assets/icons/star.png');
+const likesFormatter: Intl.NumberFormat = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 1,
+  notation: 'compact',
+});
 
-const games: readonly LibraryGame[] = [
-  {
-    category: 'Strategy',
-    description:
-      'Cozy Italian Vacation Cafe 🏖️ No timers, No stress 😌 cook traditional dishes 🍝 upgrade and customize 🏠 just drink Prosecco 🥂 relax and grow your dream cafe ✨',
-    image: 'vacation-cafe-simulator-card.jpg',
-    likes: '28.7K',
-    name: 'Vacation Cafe Simulator',
-    price: 'Free',
-    rating: 4.8,
-    slug: 'vacation-cafe-simulator',
-  },
-  {
-    category: 'Puzzle',
-    description:
-      "Organize 2000+ potions on shelves after the witch's cats have knocked them over, using clues around an enchanted cellar. Learn strange symbols and decipher cryptic notes.",
-    image: 'shelve-the-potions-card.jpg',
-    likes: '21.3K',
-    name: 'Shelve the Potions!',
-    price: 'Free',
-    rating: 4.7,
-    slug: 'shelve-the-potions',
-  },
-  {
-    category: 'Farm',
-    description:
-      'A cozy woodland survival game about a mouse restoring their childhood burrow. Explore, gather resources, craft, knit warm sweaters, bake pies and meet the locals.',
-    image: 'winter-burrow-card.jpg',
-    likes: '32.4K',
-    name: 'Winter Burrow',
-    price: 'Free',
-    rating: 4.9,
-    slug: 'winter-burrow',
-  },
-  {
-    category: 'Strategy',
-    description:
-      'A multiplayer life simulation game crafted for creativity, freedom, and peace. Build your dream home, explore hobbies, and forge warm connections with friends in a cozy town.',
-    image: 'heartopia-card.jpg',
-    likes: '46.8K',
-    name: 'Heartopia',
-    price: '$1.99',
-    rating: 4.6,
-    slug: 'heartopia',
-  },
-  {
-    category: 'Puzzle',
-    description:
-      'Run a cozy cat post office. Sort and deliver parcels from the daily boat. At night, the moon reveals hidden truths about packages. Clear a strange backlog and unlock new destinations.',
-    image: 'cat-mail-co-card.jpg',
-    likes: '38.2K',
-    name: 'Cat Mail Co.',
-    price: 'Free',
-    rating: 4.9,
-    slug: 'cat-mail-co',
-  },
-  {
-    category: 'Strategy',
-    description:
-      'A free-to-play fantasy life sim adventure where you can craft, explore, and create the life and home of your dreams in a vibrant, heartwarming world.',
-    image: 'palia-card.jpg',
-    likes: '89.5K',
-    name: 'Palia',
-    price: 'Free',
-    rating: 4.8,
-    slug: 'palia',
-  },
-];
+const getCategoryOptions = (
+  categories: readonly GameCategory[],
+): readonly CategoryOption[] => {
+  const categoryValues = new Set<LibraryCategory>();
+  const options: CategoryOption[] = [];
+
+  for (const category of categories) {
+    if (
+      !isLibraryCategory(category.slug) ||
+      categoryValues.has(category.slug)
+    ) {
+      continue;
+    }
+
+    categoryValues.add(category.slug);
+    options.push({
+      isDefault: category.isDefault,
+      label: category.label.trim() || category.slug,
+      value: category.slug,
+    });
+  }
+
+  return options;
+};
 
 const createFilterChips = (
   signal: AbortSignal,
   onSelect: (category: LibraryCategory) => void,
 ): FilterController => {
-  const filters: HTMLDivElement = document.createElement('div');
-  filters.className = 'library-filters';
-  filters.setAttribute('role', 'group');
-  filters.setAttribute('aria-label', 'Game categories');
-  filters.innerHTML = categories
-    .map(
-      (category: CategoryOption): string => `
-        <button
-          class="library-filters__chip"
-          type="button"
-          data-category="${category.value}"
-          aria-pressed="false"
-        >
-          ${category.label}
-        </button>
-      `,
-    )
-    .join('');
+  const root: HTMLDivElement = document.createElement('div');
+  let categories: readonly CategoryOption[] = [];
+  root.className = 'library__filter-content';
 
   const setValue = (value: LibraryCategory): void => {
     const chips: NodeListOf<HTMLButtonElement> =
-      filters.querySelectorAll<HTMLButtonElement>('[data-category]');
+      root.querySelectorAll<HTMLButtonElement>('[data-category]');
     for (const chip of chips) {
       const isActive: boolean = chip.dataset.category === value;
       chip.classList.toggle('library-filters__chip--active', isActive);
@@ -166,7 +117,31 @@ const createFilterChips = (
     }
   };
 
-  filters.addEventListener(
+  const renderCategories = (
+    nextCategories: readonly CategoryOption[],
+    value: LibraryCategory,
+  ): void => {
+    const filters: HTMLDivElement = document.createElement('div');
+    filters.className = 'library-filters';
+    filters.setAttribute('role', 'group');
+    filters.setAttribute('aria-label', 'Game categories');
+    categories = nextCategories;
+
+    for (const category of categories) {
+      const chip: HTMLButtonElement = document.createElement('button');
+      chip.className = 'library-filters__chip';
+      chip.type = 'button';
+      chip.dataset.category = category.value;
+      chip.ariaPressed = 'false';
+      chip.textContent = category.label;
+      filters.append(chip);
+    }
+
+    root.replaceChildren(filters);
+    setValue(value);
+  };
+
+  root.addEventListener(
     'click',
     (event: MouseEvent): void => {
       if (!(event.target instanceof Element)) {
@@ -187,7 +162,40 @@ const createFilterChips = (
     { signal },
   );
 
-  return { element: filters, setValue };
+  return {
+    element: root,
+    renderCategories,
+    renderEmpty: (): void => {
+      categories = [];
+      root.replaceChildren(
+        createEmptyState({
+          message: 'Category filters will appear here when they are available.',
+          title: 'No categories found',
+        }),
+      );
+    },
+    renderError: (onRetry: () => void): void => {
+      categories = [];
+      root.replaceChildren(
+        createBlockErrorState({
+          message: CATEGORY_ERROR_MESSAGE,
+          onRetry,
+          title: 'Unable to load categories',
+        }),
+      );
+    },
+    renderLoading: (): void => {
+      categories = [];
+      root.replaceChildren(
+        createSkeletonState({
+          itemCount: 1,
+          label: 'Loading game categories',
+          variant: 'rows',
+        }),
+      );
+    },
+    setValue,
+  };
 };
 
 const createSortControl = (
@@ -324,11 +332,9 @@ const createSortControl = (
       const optionButton: HTMLButtonElement | null = event.target.closest(
         'button[data-sort-value]',
       );
-      if (optionButton === null) {
-        return;
+      if (optionButton !== null) {
+        selectOption(optionButton);
       }
-
-      selectOption(optionButton);
     },
     { signal },
   );
@@ -395,136 +401,142 @@ const createSortControl = (
     { signal },
   );
 
-  return { element: sort, setValue };
-};
-
-const createGameCard = (game: LibraryGame): HTMLElement => {
-  const card: HTMLElement = document.createElement('article');
-  const imagePath: string = getAppPath(`/assets/images/games/${game.image}`);
-  card.className = 'library-card';
-  card.innerHTML = `
-    <img class="library-card__image" src="${imagePath}" alt="${game.name} game artwork" />
-    <div class="library-card__content">
-      <div class="library-card__heading">
-        <div class="library-card__title-group">
-          <h2 class="library-card__title">${game.name}</h2>
-          <span class="library-card__category">${game.category}</span>
-        </div>
-        <strong class="library-card__price library-card__price--desktop${game.price === 'Free' ? ' library-card__price--free' : ''}">${game.price}</strong>
-      </div>
-      <p class="library-card__description">${game.description}</p>
-      <div class="library-card__footer">
-        <div class="library-card__stats">
-          <span role="img" aria-label="Rated ${game.rating} out of 5"><img class="library-card__stat-icon" src="${starIconPath}" alt="" aria-hidden="true" />${game.rating}</span>
-          <span role="img" aria-label="${game.likes} likes"><img class="library-card__stat-icon" src="${heartIconPath}" alt="" aria-hidden="true" />${game.likes}</span>
-        </div>
-        <strong class="library-card__price library-card__price--mobile${game.price === 'Free' ? ' library-card__price--free' : ''}">${game.price}</strong>
-        <button class="btn btn--primary library-card__details" type="button" data-game-slug="${game.slug}">Details</button>
-      </div>
-    </div>
-  `;
-
-  return card;
-};
-
-const createPagination = (
-  signal: AbortSignal,
-  onSelect: (page: number) => void,
-): PaginationController => {
-  const totalPages: number = 4;
-  let currentPage: number = 1;
-  const pagination: HTMLElement = document.createElement('nav');
-  pagination.className = 'library-pagination';
-  pagination.setAttribute('aria-label', 'Library pages');
-  pagination.innerHTML = `
-    <button class="library-pagination__button library-pagination__button--arrow" type="button" data-page-direction="previous" aria-label="Previous page">
-      <span class="material-symbols-rounded" aria-hidden="true">chevron_left</span>
-    </button>
-    ${Array.from(
-      { length: totalPages },
-      (_value: unknown, index: number): string => `
-        <button class="library-pagination__button" type="button" data-page="${index + 1}" aria-label="Page ${index + 1}">${index + 1}</button>
-      `,
-    ).join('')}
-    <button class="library-pagination__button library-pagination__button--arrow" type="button" data-page-direction="next" aria-label="Next page">
-      <span class="material-symbols-rounded" aria-hidden="true">chevron_right</span>
-    </button>
-  `;
-
-  const previousButton: HTMLButtonElement | null = pagination.querySelector(
-    '[data-page-direction="previous"]',
-  );
-  const nextButton: HTMLButtonElement | null = pagination.querySelector(
-    '[data-page-direction="next"]',
-  );
-  const pageButtons: NodeListOf<HTMLButtonElement> =
-    pagination.querySelectorAll<HTMLButtonElement>('[data-page]');
-
-  const updateState = (): void => {
-    if (previousButton !== null) {
-      previousButton.disabled = currentPage <= 1;
-    }
-    if (nextButton !== null) {
-      nextButton.disabled = currentPage >= totalPages;
-    }
-
-    const mobileWindowStart: number = currentPage <= 2 ? 1 : 2;
-    const mobileWindowEnd: number = mobileWindowStart + 2;
-
-    for (const pageButton of pageButtons) {
-      const page: number = Number(pageButton.dataset.page);
-      const isActive: boolean = page === currentPage;
-      pageButton.classList.toggle(
-        'library-pagination__button--active',
-        isActive,
-      );
-      pageButton.classList.toggle(
-        'library-pagination__button--outside-mobile-window',
-        page < mobileWindowStart || page > mobileWindowEnd,
-      );
-      pageButton.toggleAttribute('aria-current', isActive);
-      if (isActive) {
-        pageButton.ariaCurrent = 'page';
-      }
-    }
-  };
-
-  pagination.addEventListener(
-    'click',
-    (event: MouseEvent): void => {
-      if (!(event.target instanceof Element)) {
-        return;
-      }
-
-      const button: HTMLButtonElement | null = event.target.closest('button');
-      if (button === null || button.disabled) {
-        return;
-      }
-
-      if (button.dataset.page !== undefined) {
-        onSelect(Number(button.dataset.page));
-      } else if (button.dataset.pageDirection === 'previous') {
-        onSelect(Math.max(1, currentPage - 1));
-      } else if (button.dataset.pageDirection === 'next') {
-        onSelect(Math.min(totalPages, currentPage + 1));
+  sort.addEventListener(
+    'focusout',
+    (event: FocusEvent): void => {
+      if (
+        !(event.relatedTarget instanceof Node) ||
+        !sort.contains(event.relatedTarget)
+      ) {
+        setOpen(false);
       }
     },
     { signal },
   );
 
+  return { element: sort, setValue };
+};
+
+const getCategoryLabel = (category: string): string => {
+  const normalizedCategory: string = category.trim();
+  return normalizedCategory.length === 0
+    ? 'Other'
+    : `${normalizedCategory.charAt(0).toUpperCase()}${normalizedCategory.slice(1)}`;
+};
+
+const createPrice = (price: string, modifier: string): HTMLElement => {
+  const priceElement: HTMLElement = document.createElement('strong');
+  const isFree: boolean = price.trim().toLowerCase() === 'free';
+  priceElement.className = `library-card__price library-card__price--${modifier}`;
+  priceElement.classList.toggle('library-card__price--free', isFree);
+  priceElement.textContent = price;
+  return priceElement;
+};
+
+const createStat = (
+  iconPath: string,
+  label: string,
+  value: string,
+): HTMLSpanElement => {
+  const stat: HTMLSpanElement = document.createElement('span');
+  const icon: HTMLImageElement = document.createElement('img');
+  stat.setAttribute('role', 'img');
+  stat.setAttribute('aria-label', label);
+  icon.className = 'library-card__stat-icon';
+  icon.src = iconPath;
+  icon.alt = '';
+  icon.ariaHidden = 'true';
+  stat.append(icon, value);
+  return stat;
+};
+
+const createGameCard = (game: GameSummary): HTMLElement => {
+  const card: HTMLElement = document.createElement('article');
+  const image: HTMLImageElement = document.createElement('img');
+  const content: HTMLDivElement = document.createElement('div');
+  const heading: HTMLDivElement = document.createElement('div');
+  const titleGroup: HTMLDivElement = document.createElement('div');
+  const title: HTMLHeadingElement = document.createElement('h2');
+  const category: HTMLSpanElement = document.createElement('span');
+  const description: HTMLParagraphElement = document.createElement('p');
+  const footer: HTMLDivElement = document.createElement('div');
+  const stats: HTMLDivElement = document.createElement('div');
+  const detailsButton: HTMLButtonElement = document.createElement('button');
+  const displayName: string = game.name.trim() || 'Untitled game';
+  const displayRating: string = Number.isFinite(game.rating)
+    ? game.rating.toFixed(1)
+    : 'Not rated';
+  const displayLikes: string = Number.isFinite(game.likesCount)
+    ? likesFormatter.format(game.likesCount)
+    : '0';
+
+  card.className = 'library-card';
+  image.className = 'library-card__image';
+  image.src = getAppPath(game.cardImage);
+  image.alt = `${displayName} game artwork`;
+  image.decoding = 'async';
+  image.loading = 'lazy';
+  content.className = 'library-card__content';
+  heading.className = 'library-card__heading';
+  titleGroup.className = 'library-card__title-group';
+  title.className = 'library-card__title';
+  title.textContent = displayName;
+  category.className = 'library-card__category';
+  category.textContent = getCategoryLabel(game.category);
+  description.className = 'library-card__description';
+  description.textContent = game.shortDescription;
+  footer.className = 'library-card__footer';
+  stats.className = 'library-card__stats';
+  stats.append(
+    createStat(starIconPath, `Rated ${displayRating} out of 5`, displayRating),
+    createStat(heartIconPath, `${displayLikes} likes`, displayLikes),
+  );
+  detailsButton.className = 'btn btn--primary library-card__details';
+  detailsButton.type = 'button';
+  detailsButton.dataset.gameSlug = game.slug;
+  detailsButton.setAttribute('aria-label', `View details for ${displayName}`);
+  detailsButton.textContent = 'Details';
+
+  titleGroup.append(title, category);
+  heading.append(titleGroup, createPrice(game.price, 'desktop'));
+  footer.append(stats, createPrice(game.price, 'mobile'), detailsButton);
+  content.append(heading, description, footer);
+  card.append(image, content);
+  return card;
+};
+
+const createLibraryQuery = (context: RouteContext): LibraryGamesQuery => {
   return {
-    element: pagination,
-    setPage: (page: number): void => {
-      currentPage = page;
-      updateState();
-    },
+    category: context.state.category,
+    limit: LIBRARY_PAGE_SIZE,
+    page: context.state.page,
+    sort: context.state.sort,
   };
+};
+
+const getLibraryQueryKey = (query: LibraryGamesQuery): string => {
+  return `${query.category}:${query.sort}:${query.page}:${query.limit}`;
+};
+
+const getLibraryQueryScopeKey = (query: LibraryGamesQuery): string => {
+  return `${query.category}:${query.sort}`;
 };
 
 export const libraryPage = (initialContext: RouteContext): RouteView => {
   const eventController: AbortController = new AbortController();
   const { signal } = eventController;
+  let shouldUseApiDefaultCategory: boolean = !isLibraryCategory(
+    initialContext.sourceUrl.searchParams.get('category'),
+  );
+  let categoriesRequest: AbortController | undefined;
+  let categoriesRequestVersion: number = 0;
   let context: RouteContext = initialContext;
+  let gamesRequest: AbortController | undefined;
+  let gamesRequestVersion: number = 0;
+  let isDestroyed: boolean = false;
+  let knownPaginationScopeKey: string | undefined;
+  let knownTotalPages: number = 1;
+  let loadedQueryKey: string | undefined;
   const section: HTMLElement = document.createElement('section');
   section.className = 'library';
   section.setAttribute('aria-labelledby', 'library-title');
@@ -539,6 +551,7 @@ export const libraryPage = (initialContext: RouteContext): RouteView => {
     </div>
   `;
 
+  const inner: HTMLElement | null = section.querySelector('.library__inner');
   const controls: HTMLElement | null =
     section.querySelector('.library__controls');
   const gamesContainer: HTMLElement | null =
@@ -561,7 +574,7 @@ export const libraryPage = (initialContext: RouteContext): RouteView => {
       }
     },
   );
-  const pagination: PaginationController = createPagination(
+  const pagination: LibraryPaginationController = createLibraryPagination(
     signal,
     (page: number): void => {
       if (page !== context.state.page) {
@@ -571,10 +584,177 @@ export const libraryPage = (initialContext: RouteContext): RouteView => {
   );
 
   controls?.append(filters.element, sort.element);
-  gamesContainer?.append(
-    ...games.map((game: LibraryGame): HTMLElement => createGameCard(game)),
-  );
-  section.querySelector('.library__inner')?.append(pagination.element);
+  inner?.append(pagination.element);
+
+  const renderGamesLoading = (): void => {
+    gamesContainer?.setAttribute('aria-busy', 'true');
+    gamesContainer?.replaceChildren(
+      createSkeletonState({
+        itemCount: LIBRARY_PAGE_SIZE,
+        label: 'Loading games',
+        variant: 'cards',
+      }),
+    );
+    pagination.setBusy(true);
+  };
+
+  const renderGamesError = (query: LibraryGamesQuery): void => {
+    gamesContainer?.removeAttribute('aria-busy');
+    gamesContainer?.replaceChildren(
+      createBlockErrorState({
+        message: LIBRARY_ERROR_MESSAGE,
+        onRetry: (): void => {
+          void loadGames(query);
+        },
+        title: 'Unable to load the game library',
+      }),
+    );
+    pagination.setBusy(false);
+  };
+
+  const renderGames = (games: readonly GameSummary[]): void => {
+    gamesContainer?.removeAttribute('aria-busy');
+    gamesContainer?.replaceChildren(
+      ...(games.length === 0
+        ? [
+            createEmptyState({
+              message:
+                'No games are available for the selected filters and page.',
+              title: 'Data Not Found',
+            }),
+          ]
+        : games.map((game: GameSummary): HTMLElement => createGameCard(game))),
+    );
+  };
+
+  const loadGames = async (query: LibraryGamesQuery): Promise<void> => {
+    gamesRequest?.abort();
+    const request: AbortController = new AbortController();
+    const requestVersion: number = gamesRequestVersion + 1;
+    gamesRequest = request;
+    gamesRequestVersion = requestVersion;
+    renderGamesLoading();
+
+    try {
+      const response = await fetchLibraryGames(query, {
+        signal: request.signal,
+      });
+      if (
+        requestVersion !== gamesRequestVersion ||
+        isDestroyed ||
+        request.signal.aborted
+      ) {
+        return;
+      }
+
+      knownPaginationScopeKey = getLibraryQueryScopeKey(query);
+      knownTotalPages = Math.max(1, response.meta.totalPages);
+      if (response.data.length === 0 && query.page !== 1) {
+        context.navigate(updateUrlState(context.url, { page: 1 }), {
+          replace: true,
+        });
+        return;
+      }
+
+      const isEmpty: boolean = response.data.length === 0;
+      renderGames(response.data);
+      pagination.setState({
+        currentPage: isEmpty ? 1 : response.meta.page,
+        totalPages: knownTotalPages,
+      });
+      pagination.setBusy(false);
+    } catch (error: unknown) {
+      if (
+        requestVersion !== gamesRequestVersion ||
+        isDestroyed ||
+        request.signal.aborted ||
+        isApiAbortError(error)
+      ) {
+        return;
+      }
+
+      renderGamesError(query);
+      dispatchSnackbar({
+        message: LIBRARY_ERROR_MESSAGE,
+        variant: 'error',
+      });
+    } finally {
+      if (gamesRequest === request) {
+        gamesRequest = undefined;
+      }
+    }
+  };
+
+  const loadCategories = async (): Promise<void> => {
+    categoriesRequest?.abort();
+    const request: AbortController = new AbortController();
+    const requestVersion: number = categoriesRequestVersion + 1;
+    categoriesRequest = request;
+    categoriesRequestVersion = requestVersion;
+    filters.renderLoading();
+
+    try {
+      const response = await fetchCategories({ signal: request.signal });
+      if (
+        requestVersion !== categoriesRequestVersion ||
+        isDestroyed ||
+        request.signal.aborted
+      ) {
+        return;
+      }
+
+      const categoryOptions: readonly CategoryOption[] = getCategoryOptions(
+        response.data,
+      );
+      const defaultCategory: CategoryOption | undefined =
+        categoryOptions.find(
+          (category: CategoryOption): boolean => category.isDefault,
+        ) ?? categoryOptions[0];
+      if (defaultCategory === undefined) {
+        filters.renderEmpty();
+        return;
+      }
+
+      const activeCategory: CategoryOption = shouldUseApiDefaultCategory
+        ? defaultCategory
+        : (categoryOptions.find(
+            (category: CategoryOption): boolean =>
+              category.value === context.state.category,
+          ) ?? defaultCategory);
+      filters.renderCategories(categoryOptions, activeCategory.value);
+
+      if (activeCategory.value !== context.state.category) {
+        context.navigate(
+          updateUrlState(context.url, {
+            category: activeCategory.value,
+            page: 1,
+          }),
+          { replace: true },
+        );
+      }
+    } catch (error: unknown) {
+      if (
+        requestVersion !== categoriesRequestVersion ||
+        isDestroyed ||
+        request.signal.aborted ||
+        isApiAbortError(error)
+      ) {
+        return;
+      }
+
+      filters.renderError((): void => {
+        void loadCategories();
+      });
+      dispatchSnackbar({
+        message: CATEGORY_ERROR_MESSAGE,
+        variant: 'error',
+      });
+    } finally {
+      if (categoriesRequest === request) {
+        categoriesRequest = undefined;
+      }
+    }
+  };
 
   gamesContainer?.addEventListener(
     'click',
@@ -587,7 +767,7 @@ export const libraryPage = (initialContext: RouteContext): RouteView => {
         'button[data-game-slug]',
       );
       const slug: string | undefined = detailsButton?.dataset.gameSlug;
-      if (slug !== undefined) {
+      if (slug !== undefined && slug.length > 0) {
         dispatchGameDetailsRequest(slug);
       }
     },
@@ -595,17 +775,44 @@ export const libraryPage = (initialContext: RouteContext): RouteView => {
   );
 
   const synchronize = (nextContext: RouteContext): void => {
+    if (nextContext.state.category !== context.state.category) {
+      shouldUseApiDefaultCategory = false;
+    }
     context = nextContext;
     filters.setValue(context.state.category);
     sort.setValue(context.state.sort);
-    pagination.setPage(context.state.page);
+
+    const query: LibraryGamesQuery = createLibraryQuery(context);
+    const queryKey: string = getLibraryQueryKey(query);
+    const queryScopeKey: string = getLibraryQueryScopeKey(query);
+    pagination.setState({
+      currentPage: query.page,
+      totalPages:
+        queryScopeKey === knownPaginationScopeKey
+          ? Math.max(query.page, knownTotalPages)
+          : query.page,
+    });
+    if (queryKey === loadedQueryKey) {
+      return;
+    }
+
+    loadedQueryKey = queryKey;
+    void loadGames(query);
   };
 
   synchronize(initialContext);
+  void loadCategories();
 
   return {
     content: section,
     dispose: (): void => {
+      isDestroyed = true;
+      categoriesRequestVersion += 1;
+      gamesRequestVersion += 1;
+      categoriesRequest?.abort();
+      gamesRequest?.abort();
+      categoriesRequest = undefined;
+      gamesRequest = undefined;
       eventController.abort();
     },
     update: synchronize,
