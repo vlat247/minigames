@@ -227,10 +227,18 @@ export const createAuthDialog = (): AuthDialogController => {
       openAnimationFrame = undefined;
     }
 
+    const selectedTab: HTMLButtonElement =
+      mode === 'login' ? loginTab : registerTab;
+    const shouldMoveFocus: boolean =
+      !dialog.open || selectedTab.getAttribute('aria-selected') !== 'true';
+
     setMode(mode);
     if (dialog.open) {
       dialog.classList.remove('auth-dialog--closing');
       document.body.classList.add('dialog-open');
+      if (shouldMoveFocus) {
+        selectedTab.focus({ preventScroll: true });
+      }
       openAnimationFrame = globalThis.requestAnimationFrame((): void => {
         dialog.classList.add('auth-dialog--visible');
         openAnimationFrame = undefined;
@@ -243,6 +251,7 @@ export const createAuthDialog = (): AuthDialogController => {
         ? document.activeElement
         : null;
     dialog.showModal();
+    selectedTab.focus({ preventScroll: true });
     document.body.classList.add('dialog-open');
     openAnimationFrame = globalThis.requestAnimationFrame((): void => {
       dialog.classList.add('auth-dialog--visible');
