@@ -47,6 +47,30 @@
     pointer-events: none;
   }
 
+  &--pending {
+    cursor: wait;
+  }
+
+  &__close {
+    display: grid;
+    width: $button-height;
+    height: $button-height;
+    margin: 0 0 $space-1 auto;
+    padding: 0;
+    place-items: center;
+    border: $border-width-default solid $color-ink;
+    border-radius: $radius-sm;
+    background: $color-surface;
+    color: $color-ink;
+    cursor: pointer;
+    transition: background-color $transition-fast;
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: $opacity-disabled;
+    }
+  }
+
   &__panels {
     margin-top: $space-3;
   }
@@ -80,6 +104,11 @@
     &[aria-selected='true'] {
       background: $color-footer-low;
       color: $color-white;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: $opacity-disabled;
     }
   }
 }
@@ -137,6 +166,11 @@
       font-weight: $font-weight-bold;
       text-decoration: underline;
       cursor: pointer;
+
+      &:disabled {
+        cursor: not-allowed;
+        opacity: $opacity-disabled;
+      }
     }
   }
 }
@@ -164,6 +198,11 @@
     line-height: normal;
     text-decoration: underline;
     cursor: pointer;
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: $opacity-disabled;
+    }
   }
 
   &__submit {
@@ -174,6 +213,12 @@
     border-width: $border-width-card;
     border-radius: $radius-md;
     box-shadow: $shadow-button;
+
+    &:disabled {
+      box-shadow: none;
+      cursor: not-allowed;
+      opacity: $opacity-disabled;
+    }
   }
 }
 
@@ -204,6 +249,10 @@
     &:focus-within {
       border-color: $color-tertiary;
       box-shadow: $focus-ring;
+    }
+
+    &--invalid {
+      border-color: $color-error;
     }
 
     > .material-symbols-rounded {
@@ -238,6 +287,23 @@
     background: transparent;
     color: $color-text;
     cursor: pointer;
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: $opacity-disabled;
+    }
+  }
+
+  &__error {
+    margin: 0;
+    color: $color-error;
+    font-size: $font-size-2xs;
+    font-weight: $font-weight-medium;
+    line-height: normal;
+
+    &:empty {
+      display: none;
+    }
   }
 }
 
@@ -274,6 +340,11 @@
   line-height: normal;
   cursor: pointer;
   transition: background-color $transition-fast;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: $opacity-disabled;
+  }
 }
 
 body.dialog-open {
@@ -281,13 +352,14 @@ body.dialog-open {
 }
 
 @include hover-capable {
-  .auth-tabs button:hover:not([aria-selected='true']),
-  .auth-google-button:hover {
+  .auth-tabs button:hover:not([aria-selected='true']):not(:disabled),
+  .auth-google-button:hover:not(:disabled),
+  .auth-dialog__close:hover:not(:disabled) {
     background: $color-hover;
   }
 
-  .auth-panel__footer button:hover,
-  .auth-form__forgot:hover {
+  .auth-panel__footer button:hover:not(:disabled),
+  .auth-form__forgot:hover:not(:disabled) {
     color: $color-tertiary;
   }
 }
