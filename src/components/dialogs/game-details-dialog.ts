@@ -107,7 +107,7 @@ const isAmbiguousMutationError = (error: unknown): boolean => {
 };
 
 const requestAuthentication = (message: string): void => {
-  dispatchSnackbar({ message, variant: 'error' });
+  dispatchSnackbar({ message, variant: 'warning' });
   dispatchAuthDialogRequest('login');
 };
 
@@ -177,7 +177,6 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
     | {
         readonly email: string;
         readonly slug: string;
-        readonly viewVersion: number;
       }
     | undefined;
   let commentsRequest: AbortController | undefined;
@@ -189,7 +188,6 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
     | {
         readonly email: string;
         readonly slug: string;
-        readonly viewVersion: number;
       }
     | undefined;
   let gameActionsService: AuthenticatedGameActionsService | undefined;
@@ -199,13 +197,11 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
     {
       readonly email: string;
       readonly slug: string;
-      readonly viewVersion: number;
     }
   >();
   let openAnimationFrame: number | undefined;
   let renderedGame: GameDetails | undefined;
   let returnFocusElement: HTMLElement | null = null;
-  let viewVersion: number = 0;
 
   const getFavoriteControls = ():
     | {
@@ -234,15 +230,10 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
     });
   };
 
-  const isCurrentMutationView = (
-    slug: string,
-    email: string,
-    mutationViewVersion: number,
-  ): boolean => {
+  const isActiveMutationIdentity = (slug: string, email: string): boolean => {
     return (
       !isDestroyed &&
       dialog.open &&
-      mutationViewVersion === viewVersion &&
       activeSlug === slug &&
       activeSession?.email === email
     );
@@ -261,8 +252,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
     );
     const isPending: boolean =
       commentSubmission?.slug === activeSlug &&
-      commentSubmission.email === activeSession.email &&
-      commentSubmission.viewVersion === viewVersion;
+      commentSubmission.email === activeSession.email;
     updateCommentComposerState(composer, { isPending });
     commentComposer = composer;
     commentComposerHost.append(composer.element);
@@ -417,8 +407,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
     renderFavoriteState(
       favoriteMutation !== undefined &&
         favoriteMutation.slug === activeSlug &&
-        favoriteMutation.email === activeSession?.email &&
-        favoriteMutation.viewVersion === viewVersion,
+        favoriteMutation.email === activeSession?.email,
     );
     setDialogTitle();
   };
@@ -485,8 +474,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
         comment.commentId,
         mutation !== undefined &&
           mutation.slug === activeSlug &&
-          mutation.email === activeSession?.email &&
-          mutation.viewVersion === viewVersion,
+          mutation.email === activeSession?.email,
       );
     }
   };
@@ -630,24 +618,21 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
     if (
       session === undefined ||
       (favoriteMutation?.slug === slug &&
-        favoriteMutation.email === session.email &&
-        favoriteMutation.viewVersion === viewVersion)
+        favoriteMutation.email === session.email)
     ) {
       return;
     }
 
-    const mutationViewVersion: number = viewVersion;
     const mutation = {
       email: session.email,
       slug,
-      viewVersion: mutationViewVersion,
     };
     favoriteMutation = mutation;
     renderFavoriteState(true);
 
     try {
       const result: FavoriteGameResult = await service.toggleFavorite(slug);
-      if (!isCurrentMutationView(slug, session.email, mutationViewVersion)) {
+      if (!isActiveMutationIdentity(slug, session.email)) {
         return;
       }
 
@@ -666,7 +651,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
         variant: 'success',
       });
     } catch (error: unknown) {
-      if (!isCurrentMutationView(slug, session.email, mutationViewVersion)) {
+      if (!isActiveMutationIdentity(slug, session.email)) {
         return;
       }
 
@@ -689,7 +674,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
       if (favoriteMutation === mutation) {
         favoriteMutation = undefined;
       }
-      if (isCurrentMutationView(slug, session.email, mutationViewVersion)) {
+      if (isActiveMutationIdentity(slug, session.email)) {
         renderFavoriteState(false);
       }
     }
@@ -710,17 +695,14 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
     if (
       session === undefined ||
       (commentSubmission?.slug === slug &&
-        commentSubmission.email === session.email &&
-        commentSubmission.viewVersion === viewVersion)
+        commentSubmission.email === session.email)
     ) {
       return;
     }
 
-    const mutationViewVersion: number = viewVersion;
     const mutation = {
       email: session.email,
       slug,
-      viewVersion: mutationViewVersion,
     };
     const draft: string = composer.textarea.value;
     let feedback:
@@ -732,16 +714,20 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
 
     try {
       await service.submitComment(slug, draft);
-      if (!isCurrentMutationView(slug, session.email, mutationViewVersion)) {
+      if (!isActiveMutationIdentity(slug, session.email)) {
         return;
       }
 
-      composer.textarea.value = '';
-      resizeCommentTextarea(composer.textarea);
+      const activeComposer: CommentComposerElements | undefined =
+        commentComposer;
+      if (activeComposer !== undefined) {
+        activeComposer.textarea.value = '';
+        resizeCommentTextarea(activeComposer.textarea);
+      }
       shouldRefreshComments = true;
       dispatchSnackbar({ message: 'Comment posted.', variant: 'success' });
     } catch (error: unknown) {
-      if (!isCurrentMutationView(slug, session.email, mutationViewVersion)) {
+      if (!isActiveMutationIdentity(slug, session.email)) {
         return;
       }
 
@@ -762,23 +748,24 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
       if (commentSubmission === mutation) {
         commentSubmission = undefined;
       }
-      if (
-        commentComposer === composer &&
-        isCurrentMutationView(slug, session.email, mutationViewVersion)
-      ) {
-        updateCommentComposerState(composer, {
-          isPending: false,
-          ...feedback,
-        });
-        if (feedback !== undefined) {
-          composer.textarea.focus({ preventScroll: true });
+      if (isActiveMutationIdentity(slug, session.email)) {
+        const activeComposer: CommentComposerElements | undefined =
+          commentComposer;
+        if (activeComposer !== undefined) {
+          updateCommentComposerState(activeComposer, {
+            isPending: false,
+            ...feedback,
+          });
+          if (feedback !== undefined) {
+            activeComposer.textarea.focus({ preventScroll: true });
+          }
         }
       }
     }
 
     if (
       shouldRefreshComments &&
-      isCurrentMutationView(slug, session.email, mutationViewVersion)
+      isActiveMutationIdentity(slug, session.email)
     ) {
       void loadComments(slug);
     }
@@ -803,17 +790,14 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
     if (
       session === undefined ||
       (currentLikeMutation?.slug === slug &&
-        currentLikeMutation.email === session.email &&
-        currentLikeMutation.viewVersion === viewVersion)
+        currentLikeMutation.email === session.email)
     ) {
       return;
     }
 
-    const mutationViewVersion: number = viewVersion;
     const mutation = {
       email: session.email,
       slug,
-      viewVersion: mutationViewVersion,
     };
     likeMutations.set(commentId, mutation);
     renderCommentLikeState(commentId, true);
@@ -821,7 +805,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
     try {
       const result: CommentLikeResult =
         await service.toggleCommentLike(commentId);
-      if (!isCurrentMutationView(slug, session.email, mutationViewVersion)) {
+      if (!isActiveMutationIdentity(slug, session.email)) {
         return;
       }
 
@@ -841,7 +825,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
         variant: 'success',
       });
     } catch (error: unknown) {
-      if (!isCurrentMutationView(slug, session.email, mutationViewVersion)) {
+      if (!isActiveMutationIdentity(slug, session.email)) {
         return;
       }
 
@@ -864,7 +848,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
       if (likeMutations.get(commentId) === mutation) {
         likeMutations.delete(commentId);
       }
-      if (isCurrentMutationView(slug, session.email, mutationViewVersion)) {
+      if (isActiveMutationIdentity(slug, session.email)) {
         renderCommentLikeState(commentId, false);
       }
     }
@@ -957,7 +941,6 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
   };
 
   const openGame = (slug: string): void => {
-    viewVersion += 1;
     const activeElement: Element | null = document.activeElement;
     const shouldMoveFocusToClose: boolean =
       dialog.open &&
@@ -982,7 +965,6 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
   };
 
   const deactivateGame = (): void => {
-    viewVersion += 1;
     activeSlug = undefined;
     renderedGame = undefined;
     commentsById.clear();
@@ -1131,7 +1113,6 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
       }
 
       activeSession = session;
-      viewVersion += 1;
       renderCommentComposer();
 
       if (activeSlug === undefined || !dialog.open) {

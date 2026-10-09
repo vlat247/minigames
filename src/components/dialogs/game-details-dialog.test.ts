@@ -26,7 +26,11 @@ import {
 import type { SnackbarOptions } from '../snackbar/snackbar';
 import type { AppSession } from '../../features/auth/app-session';
 import type { AuthenticatedGameActionsService } from '../../features/game-actions/authenticated-game-actions';
-import { ApiHttpError, ApiNetworkError } from '../../services/api-client';
+import {
+  ApiHttpError,
+  ApiNetworkError,
+  ApiResponseError,
+} from '../../services/api-client';
 import {
   fetchGameComments,
   fetchGameDetails,
@@ -164,6 +168,14 @@ const createDeferred = <Value>(): Deferred<Value> => {
   return promiseConstructor.withResolvers<Value>();
 };
 
+const createHttpError = (status: number, statusText: string): ApiHttpError =>
+  new ApiHttpError(
+    new Response(null, { status, statusText }),
+    'https://example.test/mutation',
+    statusText,
+    {},
+  );
+
 const getRequiredElement = <ElementType extends Element>(
   root: ParentNode,
   selector: string,
@@ -201,6 +213,23 @@ const pressEnter = (
   });
   textarea.dispatchEvent(event);
   return event;
+};
+
+const dispatchSubmit = (form: HTMLFormElement): SubmitEvent => {
+  const event = new SubmitEvent('submit', {
+    bubbles: true,
+    cancelable: true,
+  });
+  form.dispatchEvent(event);
+  return event;
+};
+
+const reopenSameGame = async (
+  fixture: GameDetailsDialogFixture,
+): Promise<void> => {
+  fixture.controller.synchronize(undefined);
+  fixture.controller.synchronize(SLUG);
+  await waitForReadyDialog(fixture.dialog);
 };
 
 const waitForReadyDialog = async (dialog: HTMLDialogElement): Promise<void> => {
@@ -408,7 +437,7 @@ describe('game details dialog authentication guards', () => {
     expect(fixture.authRequests).toEqual([{ mode: 'login' }]);
     expect(fixture.snackbarMessages).toContainEqual({
       message: 'Sign in to manage favorites.',
-      variant: 'error',
+      variant: 'warning',
     });
     expect(fixture.serviceSpies.toggleFavorite).not.toHaveBeenCalled();
   });
@@ -422,7 +451,7 @@ describe('game details dialog authentication guards', () => {
     expect(fixture.authRequests).toEqual([{ mode: 'login' }]);
     expect(fixture.snackbarMessages).toContainEqual({
       message: 'Sign in to like comments.',
-      variant: 'error',
+      variant: 'warning',
     });
     expect(fixture.serviceSpies.toggleCommentLike).not.toHaveBeenCalled();
   });
@@ -513,6 +542,138 @@ describe('game details dialog favorite action', () => {
       variant: 'success',
     });
   });
+
+  it('keeps a pending favorite locked when the same game is closed and reopened', async () => {
+    const favoriteResult = createDeferred<FavoriteGameResult>();
+    const fixture = createFixture();
+    fixture.serviceSpies.toggleFavorite.mockReturnValue(favoriteResult.promise);
+    await waitForReadyDialog(fixture.dialog);
+
+    dispatchDelegatedClick(
+      getRequiredElement(fixture.dialog, '[data-game-favorite]'),
+    );
+    await reopenSameGame(fixture);
+
+    const reopenedButton = getRequiredElement<HTMLButtonElement>(
+      fixture.dialog,
+      '[data-game-favorite]',
+    );
+    expect(reopenedButton.disabled).toBe(true);
+    expect(reopenedButton.ariaBusy).toBe('true');
+
+    dispatchDelegatedClick(reopenedButton);
+    expect(fixture.serviceSpies.toggleFavorite).toHaveBeenCalledOnce();
+
+    favoriteResult.resolve({
+      gameSlug: SLUG,
+      isFavorited: true,
+      likesCount: 99,
+    });
+
+    await vi.waitFor(() => {
+      expect(reopenedButton.disabled).toBe(false);
+      expect(reopenedButton.ariaBusy).toBeNull();
+    });
+    expect(reopenedButton.ariaPressed).toBe('true');
+    expect(
+      getRequiredElement(fixture.dialog, '[data-game-favorite-count]')
+        .textContent,
+    ).toBe('99');
+    expect(fixture.snackbarMessages).toContainEqual({
+      message: 'Game added to favorites.',
+      variant: 'success',
+    });
+  });
+
+  it('unlocks without revalidation or optimistic state after a definitive favorite failure', async () => {
+    const fixture = createFixture();
+    fixture.serviceSpies.toggleFavorite.mockRejectedValueOnce(
+      createHttpError(400, 'Bad Request'),
+    );
+    await waitForReadyDialog(fixture.dialog);
+    const favoriteButton = getRequiredElement<HTMLButtonElement>(
+      fixture.dialog,
+      '[data-game-favorite]',
+    );
+
+    dispatchDelegatedClick(favoriteButton);
+
+    await vi.waitFor(() => {
+      expect(favoriteButton.disabled).toBe(false);
+      expect(fixture.snackbarMessages).toContainEqual({
+        message: 'We could not update your favorites. Please try again.',
+        variant: 'error',
+      });
+    });
+    expect(favoriteButton.ariaBusy).toBeNull();
+    expect(favoriteButton.ariaPressed).toBe('false');
+    expect(
+      getRequiredElement(fixture.dialog, '[data-game-favorite-count]')
+        .textContent,
+    ).toBe('12');
+    expect(fixture.serviceSpies.toggleFavorite).toHaveBeenCalledOnce();
+    expect(fetchGameDetailsMock).toHaveBeenCalledOnce();
+    expect(fetchGameCommentsMock).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    [
+      'network',
+      new ApiNetworkError(
+        'https://example.test/favorites',
+        new TypeError('connection dropped'),
+      ),
+    ],
+    [
+      'invalid-response',
+      new ApiResponseError(
+        'https://example.test/favorites',
+        new SyntaxError('invalid JSON'),
+      ),
+    ],
+    ['5xx', createHttpError(503, 'Service Unavailable')],
+  ] as const)(
+    'uses a GET-only revalidation after an ambiguous %s favorite failure',
+    async (_label, error) => {
+      const fixture = createFixture();
+      fixture.serviceSpies.toggleFavorite.mockRejectedValueOnce(error);
+      await waitForReadyDialog(fixture.dialog);
+
+      dispatchDelegatedClick(
+        getRequiredElement(fixture.dialog, '[data-game-favorite]'),
+      );
+
+      await vi.waitFor(() => {
+        expect(fetchGameDetailsMock).toHaveBeenCalledTimes(2);
+        expect(
+          getRequiredElement<HTMLButtonElement>(
+            fixture.dialog,
+            '[data-game-favorite]',
+          ).disabled,
+        ).toBe(false);
+      });
+      const favoriteButton = getRequiredElement<HTMLButtonElement>(
+        fixture.dialog,
+        '[data-game-favorite]',
+      );
+      expect(favoriteButton.ariaPressed).toBe('false');
+      expect(
+        getRequiredElement(fixture.dialog, '[data-game-favorite-count]')
+          .textContent,
+      ).toBe('12');
+      expect(fixture.serviceSpies.toggleFavorite).toHaveBeenCalledOnce();
+      expect(fetchGameCommentsMock).toHaveBeenCalledOnce();
+      expect(fetchGameDetailsMock).toHaveBeenNthCalledWith(2, SLUG, {
+        signal: expect.any(AbortSignal),
+        userEmail: SESSION.email,
+      });
+      expect(fixture.snackbarMessages).toContainEqual({
+        message:
+          'We could not confirm whether your favorite changed. Refresh before trying again.',
+        variant: 'error',
+      });
+    },
+  );
 });
 
 describe('game details dialog comment submission', () => {
@@ -602,6 +763,59 @@ describe('game details dialog comment submission', () => {
       });
     },
   );
+
+  it('keeps comment submission locked when the same game is closed and reopened', async () => {
+    const commentResult = createDeferred<GameComment>();
+    const fixture = createFixture();
+    fixture.serviceSpies.submitComment.mockReturnValue(commentResult.promise);
+    await waitForReadyDialog(fixture.dialog);
+    const initialTextarea = getRequiredElement<HTMLTextAreaElement>(
+      fixture.dialog,
+      '[data-comment-text]',
+    );
+    initialTextarea.value = 'First submission';
+
+    pressEnter(initialTextarea);
+    await reopenSameGame(fixture);
+
+    const reopenedComposer = getRequiredElement<HTMLFormElement>(
+      fixture.dialog,
+      '[data-comment-composer]',
+    );
+    const reopenedTextarea = getRequiredElement<HTMLTextAreaElement>(
+      reopenedComposer,
+      '[data-comment-text]',
+    );
+    const reopenedSubmit = getRequiredElement<HTMLButtonElement>(
+      reopenedComposer,
+      'button[type="submit"]',
+    );
+    expect(reopenedComposer.ariaBusy).toBe('true');
+    expect(reopenedTextarea.disabled).toBe(true);
+    expect(reopenedSubmit.disabled).toBe(true);
+
+    reopenedTextarea.value = 'Duplicate submission';
+    expect(dispatchSubmit(reopenedComposer).defaultPrevented).toBe(true);
+    expect(fixture.serviceSpies.submitComment).toHaveBeenCalledOnce();
+
+    commentResult.resolve(CREATED_COMMENT);
+
+    await vi.waitFor(() => {
+      expect(reopenedTextarea.disabled).toBe(false);
+      expect(reopenedSubmit.disabled).toBe(false);
+    });
+    expect(reopenedComposer.ariaBusy).toBeNull();
+    expect(fixture.serviceSpies.submitComment).toHaveBeenCalledWith(
+      SLUG,
+      'First submission',
+    );
+    expect(reopenedTextarea.value).toBe('');
+    expect(fetchGameCommentsMock).toHaveBeenCalledTimes(3);
+    expect(fixture.snackbarMessages).toContainEqual({
+      message: 'Comment posted.',
+      variant: 'success',
+    });
+  });
 });
 
 describe('game details dialog comment likes', () => {
@@ -655,4 +869,116 @@ describe('game details dialog comment likes', () => {
       ).toBe('8');
     });
   });
+
+  it('keeps a pending comment like locked when the same game is closed and reopened', async () => {
+    const likeResult = createDeferred<CommentLikeResult>();
+    const fixture = createFixture();
+    fixture.serviceSpies.toggleCommentLike.mockReturnValue(likeResult.promise);
+    await waitForReadyDialog(fixture.dialog);
+
+    dispatchDelegatedClick(getCommentLikeButton(fixture.dialog, 'comment-1'));
+    await reopenSameGame(fixture);
+
+    const reopenedButton = getCommentLikeButton(fixture.dialog, 'comment-1');
+    expect(reopenedButton.disabled).toBe(true);
+    expect(reopenedButton.ariaBusy).toBe('true');
+
+    dispatchDelegatedClick(reopenedButton);
+    expect(fixture.serviceSpies.toggleCommentLike).toHaveBeenCalledOnce();
+
+    likeResult.resolve({ isLikedByCurrentUser: true, likesCount: 99 });
+
+    await vi.waitFor(() => {
+      expect(reopenedButton.disabled).toBe(false);
+      expect(reopenedButton.ariaBusy).toBeNull();
+    });
+    expect(reopenedButton.ariaPressed).toBe('true');
+    expect(
+      getRequiredElement(reopenedButton, '[data-comment-like-count]')
+        .textContent,
+    ).toBe('99');
+    expect(fixture.snackbarMessages).toContainEqual({
+      message: 'Comment liked.',
+      variant: 'success',
+    });
+  });
+
+  it('unlocks without revalidation or optimistic state after a definitive comment-like failure', async () => {
+    const fixture = createFixture();
+    fixture.serviceSpies.toggleCommentLike.mockRejectedValueOnce(
+      createHttpError(409, 'Conflict'),
+    );
+    await waitForReadyDialog(fixture.dialog);
+    const likeButton = getCommentLikeButton(fixture.dialog, 'comment-1');
+
+    dispatchDelegatedClick(likeButton);
+
+    await vi.waitFor(() => {
+      expect(likeButton.disabled).toBe(false);
+      expect(fixture.snackbarMessages).toContainEqual({
+        message: 'We could not update that comment like. Please try again.',
+        variant: 'error',
+      });
+    });
+    expect(likeButton.ariaBusy).toBeNull();
+    expect(likeButton.ariaPressed).toBe('false');
+    expect(
+      getRequiredElement(likeButton, '[data-comment-like-count]').textContent,
+    ).toBe('2');
+    expect(fixture.serviceSpies.toggleCommentLike).toHaveBeenCalledOnce();
+    expect(fetchGameCommentsMock).toHaveBeenCalledOnce();
+    expect(fetchGameDetailsMock).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    [
+      'network',
+      new ApiNetworkError(
+        'https://example.test/comment-likes',
+        new TypeError('connection dropped'),
+      ),
+    ],
+    [
+      'invalid-response',
+      new ApiResponseError(
+        'https://example.test/comment-likes',
+        new SyntaxError('invalid JSON'),
+      ),
+    ],
+    ['5xx', createHttpError(502, 'Bad Gateway')],
+  ] as const)(
+    'uses a GET-only revalidation after an ambiguous %s comment-like failure',
+    async (_label, error) => {
+      const fixture = createFixture();
+      fixture.serviceSpies.toggleCommentLike.mockRejectedValueOnce(error);
+      await waitForReadyDialog(fixture.dialog);
+
+      dispatchDelegatedClick(getCommentLikeButton(fixture.dialog, 'comment-1'));
+
+      await vi.waitFor(() => {
+        expect(fetchGameCommentsMock).toHaveBeenCalledTimes(2);
+        expect(getCommentLikeButton(fixture.dialog, 'comment-1').disabled).toBe(
+          false,
+        );
+      });
+      const likeButton = getCommentLikeButton(fixture.dialog, 'comment-1');
+      expect(likeButton.ariaPressed).toBe('false');
+      expect(
+        getRequiredElement(likeButton, '[data-comment-like-count]').textContent,
+      ).toBe('2');
+      expect(fixture.serviceSpies.toggleCommentLike).toHaveBeenCalledOnce();
+      expect(fetchGameDetailsMock).toHaveBeenCalledOnce();
+      expect(fetchGameCommentsMock).toHaveBeenNthCalledWith(2, SLUG, {
+        limit: 3,
+        signal: expect.any(AbortSignal),
+        sort: 'newest',
+        userEmail: SESSION.email,
+      });
+      expect(fixture.snackbarMessages).toContainEqual({
+        message:
+          'We could not confirm whether the comment like changed. Refresh before trying again.',
+        variant: 'error',
+      });
+    },
+  );
 });

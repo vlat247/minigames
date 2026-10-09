@@ -1,6 +1,6 @@
 # MiniGames
 
-MiniGames is a responsive TypeScript single-page application built from the RS School design without JavaScript or CSS frameworks. Story 3 connects the interface to the public MiniGames API and adds URL-driven navigation, reusable request feedback, and resilient deep links.
+MiniGames is a responsive TypeScript single-page application built from the RS School design without JavaScript or CSS frameworks. Story 4 adds Firebase authentication, a five-minute application session, authenticated game interactions, and behavior-focused unit-test coverage to the API-driven experience from Story 3.
 
 ## Technology
 
@@ -10,12 +10,16 @@ MiniGames is a responsive TypeScript single-page application built from the RS S
 - Firebase 13 for authentication
 - ESLint, Unicorn, Prettier, Husky, and lint-staged for code quality
 
-## Story 3 features
+## Story 4 features
 
 - Typed access to the public games, categories, leaderboard, details, and comments endpoints
 - Shared skeleton, error/retry, empty-state, and Snackbar feedback components
 - Home and Library routes synchronized with browser history and shareable query state
 - URL-restored Auth and Game Details dialogs plus a dedicated route-level 404 view
+- Email/password registration and login plus Google sign-in through Firebase Authentication
+- Five-minute client app sessions with restored profile UI, expiration, and logout handling
+- Authenticated favorites, comment submission, and comment-like mutations with request locking and safe failure recovery
+- Vitest behavior tests with aggregate statement coverage enforced at 80% or higher
 - GitHub Pages fallback support for pasted and refreshed SPA deep links
 
 ## Local development
@@ -52,6 +56,7 @@ out Firebase Auth before the next authentication attempt.
 
 ```bash
 npm run check
+npm run test:coverage
 npm run build
 ```
 
@@ -59,4 +64,4 @@ The application targets the latest Google Chrome and is verified at 375px, 768px
 
 ## Deployment
 
-The `story-3` branch is configured for GitHub Pages deployment at <https://vlat247.github.io/minigames/>. The workflow runs the full quality check before publishing the production build.
+The `story-4` branch is configured for GitHub Pages deployment at <https://vlat247.github.io/minigames/>. Before the first deployment, add the six required `VITE_FIREBASE_*` values from `.env.example` as GitHub Actions repository variables under **Settings → Secrets and variables → Actions → Variables**. These values are Firebase Web app identifiers, not service-account credentials. The workflow validates that every value exists and runs the full quality check before publishing the production build.

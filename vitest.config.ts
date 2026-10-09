@@ -17,6 +17,9 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'json-summary'],
+      thresholds: {
+        statements: 80,
+      },
       include: ['src/**/*.{ts,tsx}'],
       exclude: [
         // Test sources verify application code; they are not application logic.
