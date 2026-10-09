@@ -6,7 +6,10 @@ import {
   type DialogSessionGuard,
 } from './dialog-routing';
 import { Router } from './router';
-import { dispatchAuthDialogRequest } from '../components/dialogs/auth-dialog-events';
+import {
+  dispatchAuthDialogCloseRequest,
+  dispatchAuthDialogRequest,
+} from '../components/dialogs/auth-dialog-events';
 import {
   SNACKBAR_SHOW_EVENT,
   isSnackbarRequestDetail,
@@ -173,4 +176,54 @@ describe('authenticated Auth dialog guard', () => {
       expect.objectContaining({ auth: 'register' }),
     );
   });
+
+  it.each([
+    ['is canceled', null],
+    ['succeeds', ACTIVE_SESSION],
+  ] as const)(
+    'restores the previous Game Details entry when protected-action Auth %s',
+    (_label, sessionAfterAuth) => {
+      const gameUrl =
+        'http://localhost/?game=tiny-gardens&campaign=autumn#comments';
+      const gameHistoryState = { source: 'protected-action' };
+      let currentSession: AppSession | undefined;
+      globalThis.history.replaceState(gameHistoryState, '', gameUrl);
+      const getSession = vi.fn<() => AppSession | undefined>(
+        () => currentSession,
+      );
+      const { synchronizeDialogs } = createHarness(getSession);
+      synchronizeDialogs.mockClear();
+
+      dispatchAuthDialogRequest('login');
+
+      const authUrl = new URL(globalThis.location.href);
+      expect(authUrl.searchParams.get('auth')).toBe('login');
+      expect(authUrl.searchParams.get('game')).toBeNull();
+      expect(authUrl.searchParams.get('campaign')).toBe('autumn');
+      expect(authUrl.hash).toBe('#comments');
+      expect(synchronizeDialogs).toHaveBeenLastCalledWith(
+        expect.objectContaining({ auth: 'login', game: undefined }),
+      );
+
+      if (sessionAfterAuth !== null) {
+        currentSession = sessionAfterAuth;
+      }
+      const back = vi
+        .spyOn(globalThis.history, 'back')
+        .mockImplementation(() => {
+          globalThis.history.replaceState(gameHistoryState, '', gameUrl);
+          globalThis.dispatchEvent(
+            new PopStateEvent('popstate', { state: gameHistoryState }),
+          );
+        });
+
+      dispatchAuthDialogCloseRequest();
+
+      expect(back).toHaveBeenCalledOnce();
+      expect(globalThis.location.href).toBe(gameUrl);
+      expect(synchronizeDialogs).toHaveBeenLastCalledWith(
+        expect.objectContaining({ auth: undefined, game: 'tiny-gardens' }),
+      );
+    },
+  );
 });
