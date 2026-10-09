@@ -27,6 +27,11 @@ export interface RouteView {
 export type RouteHandler = (context: RouteContext) => RouteView;
 export type RouteChangeHandler = (path: string) => void;
 export type RouteChangeSubscriber = (context: RouteContext) => void;
+export type BeforeNavigationHandler = (navigationType: NavigationType) => void;
+
+export interface RouterOptions {
+  readonly beforeNavigation?: BeforeNavigationHandler;
+}
 
 export interface NavigateOptions {
   readonly historyState?: unknown;
@@ -42,6 +47,8 @@ export class Router {
   private activeRoute: Route | undefined;
 
   private activeView: RouteView | undefined;
+
+  private readonly beforeNavigationHandler: BeforeNavigationHandler | undefined;
 
   private currentContext: RouteContext | undefined;
 
@@ -89,7 +96,16 @@ export class Router {
   };
 
   private readonly handlePopState = (): void => {
-    this.renderCurrentRoute('pop');
+    this.processNavigation('pop');
+  };
+
+  private readonly processNavigation = (
+    navigationType: NavigationType,
+    updateHistory?: () => void,
+  ): void => {
+    this.beforeNavigationHandler?.(navigationType);
+    updateHistory?.();
+    this.renderCurrentRoute(navigationType);
   };
 
   private readonly renderCurrentRoute = (
@@ -253,9 +269,11 @@ export class Router {
   public constructor(
     outlet: HTMLElement,
     routeChangeHandler?: RouteChangeHandler,
+    options: RouterOptions = {},
   ) {
     this.outlet = outlet;
     this.routeChangeHandler = routeChangeHandler;
+    this.beforeNavigationHandler = options.beforeNavigation;
   }
 
   public addRoute(path: string, handler: RouteHandler): void {
@@ -294,21 +312,24 @@ export class Router {
 
     if (url.href === globalThis.location.href) {
       if (shouldReplace && Object.hasOwn(options, 'historyState')) {
-        globalThis.history.replaceState(historyState, '', url);
-        this.renderCurrentRoute('replace');
+        this.processNavigation('replace', (): void => {
+          globalThis.history.replaceState(historyState, '', url);
+        });
       }
 
       return;
     }
 
     if (shouldReplace) {
-      globalThis.history.replaceState(historyState, '', url);
-      this.renderCurrentRoute('replace');
+      this.processNavigation('replace', (): void => {
+        globalThis.history.replaceState(historyState, '', url);
+      });
       return;
     }
 
-    globalThis.history.pushState(historyState, '', url);
-    this.renderCurrentRoute('push');
+    this.processNavigation('push', (): void => {
+      globalThis.history.pushState(historyState, '', url);
+    });
   }
 
   public replace(
@@ -334,7 +355,7 @@ export class Router {
     this.isStarted = true;
     globalThis.addEventListener('popstate', this.handlePopState);
     document.addEventListener('click', this.handleDocumentClick);
-    this.renderCurrentRoute('initial');
+    this.processNavigation('initial');
   }
 
   public stop(): void {

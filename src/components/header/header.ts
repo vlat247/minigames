@@ -3,14 +3,110 @@ import {
   type AuthMode,
   dispatchAuthDialogRequest,
 } from '../dialogs/auth-dialog-events';
+import {
+  APP_SESSION_FALLBACK_AVATAR,
+  getProfileInitials,
+  getProfileName,
+  type AppSession,
+} from '../../features/auth/app-session';
 import { getAppPath } from '../../utils/paths';
+import { dispatchLogoutRequest } from './header-events';
 
 export interface HeaderController {
   readonly closeMenu: () => void;
   readonly destroy: () => void;
   readonly element: HTMLElement;
   readonly setActivePath: (path: string) => void;
+  readonly setSession: (session: AppSession | undefined) => void;
 }
+
+const getRequiredElement = <ElementType extends Element>(
+  root: ParentNode,
+  selector: string,
+): ElementType => {
+  const element = root.querySelector<ElementType>(selector);
+
+  if (element === null) {
+    throw new Error(`The header is missing its required ${selector} element.`);
+  }
+
+  return element;
+};
+
+const createAvatar = (
+  session: AppSession,
+  signal: AbortSignal,
+  className: string,
+): HTMLElement => {
+  const profileName = getProfileName(session);
+  const initials = getProfileInitials(session);
+  const avatar = document.createElement('span');
+  const fallback = document.createElement('span');
+  avatar.className = className;
+  fallback.className = `${className}-fallback`;
+  fallback.setAttribute('role', 'img');
+  fallback.setAttribute('aria-label', `Profile picture for ${profileName}`);
+
+  if (initials === APP_SESSION_FALLBACK_AVATAR) {
+    const personIcon = document.createElement('span');
+    personIcon.className = 'material-symbols-rounded';
+    personIcon.setAttribute('aria-hidden', 'true');
+    personIcon.textContent = 'person';
+    fallback.append(personIcon);
+  } else {
+    fallback.textContent = initials;
+  }
+
+  const avatarUrl = session.avatarUrl?.trim();
+  if (avatarUrl === undefined || avatarUrl.length === 0) {
+    avatar.append(fallback);
+    return avatar;
+  }
+
+  const image = document.createElement('img');
+  image.className = `${className}-image`;
+  image.alt = `Profile picture for ${profileName}`;
+  image.src = avatarUrl;
+  fallback.hidden = true;
+  image.addEventListener(
+    'error',
+    (): void => {
+      image.hidden = true;
+      fallback.hidden = false;
+    },
+    { once: true, signal },
+  );
+  avatar.append(image, fallback);
+
+  return avatar;
+};
+
+const createGuestActions = (): DocumentFragment => {
+  const actions = document.createDocumentFragment();
+  const logInButton = document.createElement('button');
+  const signUpButton = document.createElement('button');
+  logInButton.className = 'btn btn--secondary';
+  logInButton.type = 'button';
+  logInButton.dataset.authMode = 'login';
+  logInButton.textContent = 'Log In';
+  signUpButton.className = 'btn btn--primary';
+  signUpButton.type = 'button';
+  signUpButton.dataset.authMode = 'register';
+  signUpButton.textContent = 'Sign Up';
+  actions.append(logInButton, signUpButton);
+
+  return actions;
+};
+
+const createLogoutButton = (className: string): HTMLButtonElement => {
+  const button = document.createElement('button');
+  button.className = className;
+  button.type = 'button';
+  button.dataset.logout = '';
+  button.textContent = 'Logout';
+
+  return button;
+};
 
 export const createHeader = (): HeaderController => {
   const homePath: string = getAppPath('/');
@@ -34,13 +130,10 @@ export const createHeader = (): HeaderController => {
         <a class="site-header__nav-link" href="${homePath}" data-link>Community</a>
       </nav>
 
-      <div class="site-header__desktop-actions">
-        <button class="btn btn--secondary" type="button" data-auth-mode="login">Log In</button>
-        <button class="btn btn--primary" type="button" data-auth-mode="register">Sign Up</button>
-      </div>
+      <div class="site-header__desktop-actions" data-desktop-auth-slot></div>
 
       <div class="site-header__compact-actions">
-        <button class="btn btn--primary site-header__compact-sign-up" type="button" data-auth-mode="register">Sign Up</button>
+        <div class="site-header__compact-auth-slot" data-compact-auth-slot></div>
         <button
           class="site-header__menu-toggle"
           type="button"
@@ -68,10 +161,7 @@ export const createHeader = (): HeaderController => {
         <a class="mobile-menu__link" href="${homePath}" data-link>Community</a>
       </nav>
 
-      <div class="mobile-menu__actions">
-        <button class="btn btn--secondary" type="button" data-auth-mode="login">Log In</button>
-        <button class="btn btn--primary" type="button" data-auth-mode="register">Sign Up</button>
-      </div>
+      <div class="mobile-menu__actions" data-mobile-auth-slot></div>
     </div>
   `;
 
@@ -96,25 +186,60 @@ export const createHeader = (): HeaderController => {
     }
   };
 
-  const menu: HTMLElement | null = header.querySelector('.mobile-menu');
-  const menuToggle: HTMLButtonElement | null = header.querySelector(
+  const menu = getRequiredElement<HTMLElement>(header, '.mobile-menu');
+  const menuToggle = getRequiredElement<HTMLButtonElement>(
+    header,
     '.site-header__menu-toggle',
   );
-
-  if (menu === null || menuToggle === null) {
-    return {
-      closeMenu: (): void => {
-        document.body.classList.remove('menu-open');
-      },
-      destroy: (): void => {
-        eventController.abort();
-      },
-      element: header,
-      setActivePath,
-    };
-  }
+  const desktopAuthSlot = getRequiredElement<HTMLElement>(
+    header,
+    '[data-desktop-auth-slot]',
+  );
+  const compactAuthSlot = getRequiredElement<HTMLElement>(
+    header,
+    '[data-compact-auth-slot]',
+  );
+  const mobileAuthSlot = getRequiredElement<HTMLElement>(
+    header,
+    '[data-mobile-auth-slot]',
+  );
+  const profileMenuId = 'header-profile-menu';
+  let profileRoot: HTMLElement | undefined;
+  let profileToggle: HTMLButtonElement | undefined;
+  let profileMenu: HTMLElement | undefined;
 
   menu.inert = true;
+
+  const setProfileMenuOpen = (
+    isOpen: boolean,
+    shouldRestoreFocus: boolean = true,
+  ): void => {
+    if (
+      profileRoot === undefined ||
+      profileToggle === undefined ||
+      profileMenu === undefined
+    ) {
+      return;
+    }
+
+    profileRoot.classList.toggle('site-header__profile--open', isOpen);
+    profileToggle.setAttribute('aria-expanded', String(isOpen));
+    profileToggle.setAttribute(
+      'aria-label',
+      `${isOpen ? 'Close' : 'Open'} account menu for ${profileToggle.dataset.profileName ?? ''}`.trim(),
+    );
+    profileMenu.hidden = !isOpen;
+    profileMenu.inert = !isOpen;
+
+    if (isOpen) {
+      profileMenu.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+      return;
+    }
+
+    if (shouldRestoreFocus && profileToggle.isConnected) {
+      profileToggle.focus();
+    }
+  };
 
   const setMenuOpen = (
     isOpen: boolean,
@@ -137,7 +262,118 @@ export const createHeader = (): HeaderController => {
 
   const closeMenu = (): void => {
     setMenuOpen(false, false);
+    setProfileMenuOpen(false, false);
   };
+
+  const renderDesktopSession = (session: AppSession): void => {
+    const name = getProfileName(session);
+    const root = document.createElement('div');
+    const toggle = document.createElement('button');
+    const nameElement = document.createElement('span');
+    const arrow = document.createElement('span');
+    const dropdown = document.createElement('div');
+    const identity = document.createElement('div');
+    const dropdownName = document.createElement('strong');
+    const dropdownEmail = document.createElement('span');
+    root.className = 'site-header__profile';
+    toggle.className = 'site-header__profile-toggle';
+    toggle.type = 'button';
+    toggle.dataset.profileToggle = '';
+    toggle.dataset.profileName = name;
+    toggle.setAttribute('aria-haspopup', 'menu');
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-controls', profileMenuId);
+    toggle.setAttribute('aria-label', `Open account menu for ${name}`);
+    nameElement.className = 'site-header__profile-name';
+    nameElement.textContent = name;
+    arrow.className = 'material-symbols-rounded site-header__profile-arrow';
+    arrow.setAttribute('aria-hidden', 'true');
+    arrow.textContent = 'keyboard_arrow_down';
+    toggle.append(
+      createAvatar(session, signal, 'site-header__profile-avatar'),
+      nameElement,
+      arrow,
+    );
+    dropdown.className = 'site-header__profile-menu';
+    dropdown.id = profileMenuId;
+    dropdown.setAttribute('role', 'menu');
+    dropdown.hidden = true;
+    dropdown.inert = true;
+    identity.className = 'site-header__profile-identity';
+    dropdownName.className = 'site-header__profile-menu-name';
+    dropdownName.textContent = name;
+    dropdownEmail.className = 'site-header__profile-email';
+    dropdownEmail.textContent = session.email;
+    identity.append(dropdownName, dropdownEmail);
+    const logoutButton = createLogoutButton('site-header__logout');
+    logoutButton.setAttribute('role', 'menuitem');
+    dropdown.append(identity, logoutButton);
+    root.append(toggle, dropdown);
+    desktopAuthSlot.replaceChildren(root);
+    profileRoot = root;
+    profileToggle = toggle;
+    profileMenu = dropdown;
+  };
+
+  const renderCompactSession = (session: AppSession): void => {
+    const identity = document.createElement('span');
+    const name = getProfileName(session);
+    identity.className = 'site-header__compact-profile';
+    identity.setAttribute('aria-label', `Signed in as ${name}`);
+    identity.append(
+      createAvatar(session, signal, 'site-header__compact-avatar'),
+    );
+    compactAuthSlot.replaceChildren(identity);
+  };
+
+  const renderMobileSession = (session: AppSession): void => {
+    const name = getProfileName(session);
+    const identity = document.createElement('div');
+    const copy = document.createElement('div');
+    const nameElement = document.createElement('strong');
+    const emailElement = document.createElement('span');
+    identity.className = 'mobile-menu__profile';
+    copy.className = 'mobile-menu__profile-copy';
+    nameElement.className = 'mobile-menu__profile-name';
+    nameElement.textContent = name;
+    emailElement.className = 'mobile-menu__profile-email';
+    emailElement.textContent = session.email;
+    copy.append(nameElement, emailElement);
+    identity.append(
+      createAvatar(session, signal, 'mobile-menu__profile-avatar'),
+      copy,
+    );
+    mobileAuthSlot.replaceChildren(
+      identity,
+      createLogoutButton('btn btn--secondary mobile-menu__logout'),
+    );
+  };
+
+  const setSession = (session: AppSession | undefined): void => {
+    closeMenu();
+    profileRoot = undefined;
+    profileToggle = undefined;
+    profileMenu = undefined;
+    header.dataset.session = session === undefined ? 'guest' : 'authenticated';
+
+    if (session === undefined) {
+      desktopAuthSlot.replaceChildren(createGuestActions());
+      const compactSignUp = document.createElement('button');
+      compactSignUp.className = 'btn btn--primary site-header__compact-sign-up';
+      compactSignUp.type = 'button';
+      compactSignUp.dataset.authMode = 'register';
+      compactSignUp.textContent = 'Sign Up';
+      compactAuthSlot.replaceChildren(compactSignUp);
+      mobileAuthSlot.replaceChildren(createGuestActions());
+      return;
+    }
+
+    renderDesktopSession(session);
+    renderCompactSession(session);
+    renderMobileSession(session);
+  };
+
+  setSession(undefined);
 
   menuToggle.addEventListener(
     'click',
@@ -153,6 +389,23 @@ export const createHeader = (): HeaderController => {
     'click',
     (event: MouseEvent): void => {
       if (!(event.target instanceof Element)) {
+        return;
+      }
+
+      const clickedProfileToggle = event.target.closest<HTMLButtonElement>(
+        'button[data-profile-toggle]',
+      );
+      if (clickedProfileToggle !== null) {
+        setProfileMenuOpen(
+          clickedProfileToggle.getAttribute('aria-expanded') !== 'true',
+        );
+        return;
+      }
+
+      if (event.target.closest('button[data-logout]') !== null) {
+        setMenuOpen(false, false);
+        setProfileMenuOpen(false, false);
+        dispatchLogoutRequest();
         return;
       }
 
@@ -179,9 +432,34 @@ export const createHeader = (): HeaderController => {
   document.addEventListener(
     'keydown',
     (event: KeyboardEvent): void => {
-      if (event.key === 'Escape' && menuToggle.ariaExpanded === 'true') {
+      if (event.key !== 'Escape') {
+        return;
+      }
+
+      if (profileToggle?.getAttribute('aria-expanded') === 'true') {
+        setProfileMenuOpen(false);
+        return;
+      }
+
+      if (menuToggle.ariaExpanded === 'true') {
         setMenuOpen(false);
       }
+    },
+    { signal },
+  );
+
+  document.addEventListener(
+    'click',
+    (event: MouseEvent): void => {
+      if (
+        profileRoot === undefined ||
+        !(event.target instanceof Node) ||
+        profileRoot.contains(event.target)
+      ) {
+        return;
+      }
+
+      setProfileMenuOpen(false, false);
     },
     { signal },
   );
@@ -207,5 +485,6 @@ export const createHeader = (): HeaderController => {
     },
     element: header,
     setActivePath,
+    setSession,
   };
 };

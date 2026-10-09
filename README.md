@@ -39,6 +39,15 @@ To use the Firebase Auth Emulator locally, set the optional
 configuration; never put service-account credentials or other secrets in these
 variables.
 
+## App session
+
+The authenticated UI uses a separate client-side app session stored under the
+exact localStorage key `minigames:minigames-rs:app-session`. It contains only the
+profile name, email, authentication timestamp, and an optional avatar URL. Its
+lifetime is fixed at five minutes from successful authentication; reloads and
+activity do not extend it. Expiration or logout removes only this key and signs
+out Firebase Auth before the next authentication attempt.
+
 ## Quality checks
 
 ```bash
