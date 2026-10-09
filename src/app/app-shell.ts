@@ -10,6 +10,7 @@ import {
   isSnackbarRequestDetail,
   SNACKBAR_SHOW_EVENT,
 } from '../components/snackbar/snackbar-events';
+import type { AppSession } from '../features/auth/app-session';
 import type { UrlState } from './url-state';
 
 export interface AppShell {
@@ -17,6 +18,7 @@ export interface AppShell {
   readonly notifications: SnackbarController;
   readonly outlet: HTMLElement;
   readonly setActivePath: (path: string) => void;
+  readonly setSession: (session: AppSession | undefined) => void;
   readonly synchronizeDialogs: (state: UrlState) => void;
 }
 
@@ -97,6 +99,9 @@ export const createAppShell = (rootElement: HTMLElement): AppShell => {
     setActivePath: (path: string): void => {
       header.closeMenu();
       header.setActivePath(path);
+    },
+    setSession: (session: AppSession | undefined): void => {
+      header.setSession(session);
     },
     synchronizeDialogs: (state: UrlState): void => {
       authDialog.synchronize(state.auth);

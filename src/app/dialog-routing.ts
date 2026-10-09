@@ -11,6 +11,8 @@ import {
   GAME_DETAILS_OPEN_EVENT,
   isGameDetailsRequestDetail,
 } from '../components/dialogs/game-details-events';
+import { dispatchSnackbar } from '../components/snackbar/snackbar-events';
+import type { AppSession } from '../features/auth/app-session';
 
 type DialogKind = 'auth' | 'game';
 
@@ -22,6 +24,15 @@ interface DialogHistoryEntry {
 interface DialogHistoryState {
   readonly miniGamesDialog: DialogHistoryEntry;
 }
+
+export interface DialogSessionGuard {
+  readonly requireActiveSession: () => AppSession | undefined;
+}
+
+type DialogShell = Pick<AppShell, 'synchronizeDialogs'>;
+
+export const ALREADY_AUTHENTICATED_MESSAGE =
+  'You are already signed in.' as const;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -72,7 +83,8 @@ const getDialogFreeUrl = (context: RouteContext): URL => {
 
 export const connectDialogRouting = (
   router: Router,
-  shell: AppShell,
+  shell: DialogShell,
+  sessionGuard: DialogSessionGuard,
 ): (() => void) => {
   const eventController: AbortController = new AbortController();
   const { signal } = eventController;
@@ -81,6 +93,16 @@ export const connectDialogRouting = (
     kind: DialogKind,
     update: Parameters<typeof updateUrlState>[1],
   ): void => {
+    const activeSession: AppSession | undefined =
+      sessionGuard.requireActiveSession();
+    if (kind === 'auth' && activeSession !== undefined) {
+      dispatchSnackbar({
+        message: ALREADY_AUTHENTICATED_MESSAGE,
+        variant: 'success',
+      });
+      return;
+    }
+
     const context: RouteContext | undefined = router.getContext();
     if (context === undefined) {
       return;
@@ -107,6 +129,7 @@ export const connectDialogRouting = (
   };
 
   const closeDialog = (kind: DialogKind): void => {
+    sessionGuard.requireActiveSession();
     const context: RouteContext | undefined = router.getContext();
     if (context === undefined) {
       return;
@@ -177,6 +200,20 @@ export const connectDialogRouting = (
 
   const unsubscribe: () => void = router.subscribe(
     (context: RouteContext): void => {
+      const activeSession: AppSession | undefined =
+        sessionGuard.requireActiveSession();
+      if (activeSession !== undefined && context.state.auth !== undefined) {
+        dispatchSnackbar({
+          message: ALREADY_AUTHENTICATED_MESSAGE,
+          variant: 'success',
+        });
+        router.navigate(updateUrlState(context.url, { auth: null }), {
+          historyState: removeDialogHistoryEntry(context.historyState),
+          replace: true,
+        });
+        return;
+      }
+
       shell.synchronizeDialogs(context.state);
     },
   );
