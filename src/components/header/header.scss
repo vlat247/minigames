@@ -54,8 +54,162 @@
     gap: $space-2;
   }
 
+  &__compact-auth-slot {
+    display: flex;
+    align-items: center;
+  }
+
   &__compact-sign-up {
     display: none;
+  }
+
+  &__compact-profile {
+    display: flex;
+    align-items: center;
+  }
+
+  &__compact-avatar,
+  &__profile-avatar {
+    position: relative;
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    overflow: hidden;
+    border: $border-width-default solid $color-ink;
+    border-radius: $radius-round;
+    background: $color-primary;
+    color: $color-ink;
+    font-size: $font-size-2xs;
+    font-weight: $font-weight-bold;
+    line-height: $line-height-solid;
+  }
+
+  &__compact-avatar {
+    width: $avatar-size-compact;
+    height: $avatar-size-compact;
+  }
+
+  &__profile-avatar {
+    width: $avatar-size;
+    height: $avatar-size;
+  }
+
+  &__compact-avatar-image,
+  &__profile-avatar-image,
+  &__compact-avatar-fallback,
+  &__profile-avatar-fallback {
+    width: 100%;
+    height: 100%;
+  }
+
+  &__compact-avatar-image,
+  &__profile-avatar-image {
+    object-fit: cover;
+  }
+
+  &__compact-avatar-fallback,
+  &__profile-avatar-fallback {
+    display: grid;
+    place-items: center;
+
+    &[hidden] {
+      display: none;
+    }
+
+    .material-symbols-rounded {
+      font-size: $font-size-lg;
+    }
+  }
+
+  &__profile {
+    position: relative;
+  }
+
+  &__profile-toggle {
+    display: flex;
+    align-items: center;
+    gap: $space-1;
+    min-height: $button-height;
+    padding: $space-0-5 $space-1;
+    border: $border-width-default solid transparent;
+    border-radius: $radius-sm;
+    background: transparent;
+    color: $color-ink;
+    cursor: pointer;
+    transition:
+      border-color $transition-fast,
+      background-color $transition-fast;
+  }
+
+  &__profile-name {
+    max-width: $header-profile-name-max-width;
+    overflow: hidden;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-bold;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__profile-arrow {
+    font-size: $font-size-lg;
+    transition: transform $transition-fast;
+  }
+
+  &__profile--open &__profile-arrow {
+    transform: rotate(180deg);
+  }
+
+  &__profile-menu {
+    position: absolute;
+    top: calc(100% + #{$space-1});
+    right: 0;
+    z-index: $z-index-header + 1;
+    width: $header-profile-menu-width;
+    overflow: hidden;
+    border: $border-width-default solid $color-ink;
+    border-radius: $radius-sm;
+    background: $color-surface;
+    box-shadow: $shadow-small;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  &__profile-identity {
+    display: grid;
+    gap: $space-0-5;
+    padding: $space-2;
+  }
+
+  &__profile-menu-name,
+  &__profile-email {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__profile-menu-name {
+    color: $color-ink;
+    font-size: $font-size-sm;
+  }
+
+  &__profile-email {
+    color: $color-text-muted;
+    font-size: $font-size-2xs;
+  }
+
+  &__logout {
+    width: 100%;
+    padding: $space-1 $space-2;
+    border: 0;
+    border-top: $border-width-thin solid $color-outline;
+    background: transparent;
+    color: $color-ink;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    text-align: left;
+    cursor: pointer;
   }
 
   &__menu-toggle {
@@ -264,6 +418,76 @@
     }
   }
 
+  &__profile {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    min-width: 0;
+    padding-block: $space-1;
+  }
+
+  &__profile-avatar {
+    position: relative;
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: $space-6;
+    height: $space-6;
+    overflow: hidden;
+    border: $border-width-default solid $color-white;
+    border-radius: $radius-round;
+    background: $color-primary;
+    color: $color-ink;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-bold;
+    line-height: $line-height-solid;
+  }
+
+  &__profile-avatar-image,
+  &__profile-avatar-fallback {
+    width: 100%;
+    height: 100%;
+  }
+
+  &__profile-avatar-image {
+    object-fit: cover;
+  }
+
+  &__profile-avatar-fallback {
+    display: grid;
+    place-items: center;
+
+    &[hidden] {
+      display: none;
+    }
+
+    .material-symbols-rounded {
+      font-size: $font-size-xl;
+    }
+  }
+
+  &__profile-copy {
+    display: grid;
+    min-width: 0;
+  }
+
+  &__profile-name,
+  &__profile-email {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__profile-name {
+    color: $color-white;
+    font-size: $font-size-sm;
+  }
+
+  &__profile-email {
+    color: $color-footer-text;
+    font-size: $font-size-2xs;
+  }
+
   .site-header--menu-open & {
     opacity: 1;
     pointer-events: auto;
@@ -289,6 +513,11 @@ body.menu-open {
     background: $color-hover;
   }
 
+  .site-header__profile-toggle:hover,
+  .site-header__logout:hover {
+    background: $color-hover;
+  }
+
   .site-header--menu-open .site-header__menu-toggle:hover {
     background: $color-footer-low;
     box-shadow: inset 0 0 0 $border-width-thin $color-primary;
@@ -299,8 +528,17 @@ body.menu-open {
   }
 }
 
+.site-header__profile-toggle:focus-visible,
+.site-header__logout:focus-visible,
+.site-header__menu-toggle:focus-visible {
+  outline: none;
+  box-shadow: $focus-ring;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mobile-menu,
+  .site-header__profile-arrow,
+  .site-header__profile-toggle,
   .site-header__menu-toggle,
   .site-header__menu-toggle span {
     transition-duration: $motion-reduced-duration;

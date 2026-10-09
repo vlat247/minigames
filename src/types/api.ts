@@ -107,6 +107,14 @@ export interface GameDetails {
 
 export type GameDetailsResponse = ApiDataEnvelope<GameDetails>;
 
+export interface FavoriteGameResult {
+  readonly gameSlug: string;
+  readonly isFavorited: boolean;
+  readonly likesCount: number;
+}
+
+export type FavoriteGameResponse = ApiDataEnvelope<FavoriteGameResult>;
+
 export interface GameComment {
   readonly authorName: string;
   readonly commentId: string;
@@ -126,3 +134,18 @@ export type CommentsResponse = ApiEnvelope<
   readonly GameComment[],
   CommentsMeta
 >;
+
+export interface CreateCommentInput {
+  readonly authorName: string;
+  readonly text: string;
+  readonly userEmail: string;
+}
+
+export type CreateCommentResponse = ApiDataEnvelope<GameComment>;
+
+export interface CommentLikeResult {
+  readonly isLikedByCurrentUser: boolean;
+  readonly likesCount: number;
+}
+
+export type CommentLikeResponse = ApiDataEnvelope<CommentLikeResult>;

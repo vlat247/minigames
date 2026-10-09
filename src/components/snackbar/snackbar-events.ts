@@ -3,7 +3,9 @@ import type { SnackbarOptions, SnackbarVariant } from './snackbar';
 export const SNACKBAR_SHOW_EVENT: string = 'snackbar:show';
 
 const isSnackbarVariant = (value: unknown): value is SnackbarVariant => {
-  return value === 'error' || value === 'success';
+  return (['error', 'success', 'warning'] as readonly unknown[]).includes(
+    value,
+  );
 };
 
 export const dispatchSnackbar = (options: SnackbarOptions): void => {

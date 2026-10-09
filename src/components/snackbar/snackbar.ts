@@ -5,7 +5,7 @@ const MINIMUM_DURATION_MS: number = 1000;
 const MAXIMUM_DURATION_MS: number = 30_000;
 const EXIT_TRANSITION_MS: number = 180;
 
-export type SnackbarVariant = 'error' | 'success';
+export type SnackbarVariant = 'error' | 'success' | 'warning';
 
 export interface SnackbarOptions {
   readonly dismissible?: boolean;
@@ -24,6 +24,7 @@ export interface SnackbarController {
 const variantLabels: Readonly<Record<SnackbarVariant, string>> = {
   error: 'Error',
   success: 'Success',
+  warning: 'Warning',
 };
 
 const normalizeDuration = (durationMs: number | undefined): number => {
