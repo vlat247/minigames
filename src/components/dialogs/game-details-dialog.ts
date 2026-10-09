@@ -4,20 +4,50 @@ import {
   createSkeletonState,
 } from '../async-state/async-state';
 import { dispatchSnackbar } from '../snackbar/snackbar-events';
-import { ApiHttpError, isApiAbortError } from '../../services/api-client';
+import {
+  ApiAbortError,
+  ApiHttpError,
+  ApiNetworkError,
+  ApiResponseError,
+  isApiAbortError,
+} from '../../services/api-client';
 import {
   fetchGameComments,
   fetchGameDetails,
 } from '../../services/minigames-api';
-import type { CommentsResponse, GameDetails } from '../../types/api';
+import type {
+  CommentLikeResult,
+  CommentsResponse,
+  FavoriteGameResult,
+  GameComment,
+  GameDetails,
+} from '../../types/api';
 import {
+  createAvatarColorRegistry,
+  createCommentComposer,
   createCommentElements,
   createGameDetailsFragment,
   GAME_DETAILS_TITLE_ID,
   isCommentsResponsePayload,
   isGameDetailsPayload,
+  resizeCommentTextarea,
+  updateCommentComposerState,
+  updateCommentLikeControl,
+  updateGameFavoriteControls,
+  type AvatarColorResolver,
+  type CommentComposerElements,
 } from './game-details-content';
+import { dispatchAuthDialogRequest } from './auth-dialog-events';
 import { dispatchGameDetailsCloseRequest } from './game-details-events';
+import {
+  getProfileName,
+  type AppSession,
+} from '../../features/auth/app-session';
+import {
+  AuthenticationRequiredError,
+  CommentValidationError,
+  type AuthenticatedGameActionsService,
+} from '../../features/game-actions/authenticated-game-actions';
 import './game-details-dialog.scss';
 
 const DIALOG_TRANSITION_DURATION_MS: number = 240;
@@ -28,14 +58,58 @@ const COMMENTS_ERROR_MESSAGE: string =
   'The latest comments are unavailable right now. Please try again.';
 const GAME_NOT_FOUND_MESSAGE: string = 'We could not find the requested game.';
 const GAME_COMMENTS_TITLE_ID: string = 'game-comments-title';
+const FAVORITE_SIGN_IN_MESSAGE: string = 'Sign in to manage favorites.';
+const COMMENT_LIKE_SIGN_IN_MESSAGE: string = 'Sign in to like comments.';
+const FAVORITE_UNKNOWN_MESSAGE: string =
+  'We could not confirm whether your favorite changed. Refresh before trying again.';
+const FAVORITE_ERROR_MESSAGE: string =
+  'We could not update your favorites. Please try again.';
+const COMMENT_LIKE_UNKNOWN_MESSAGE: string =
+  'We could not confirm whether the comment like changed. Refresh before trying again.';
+const COMMENT_LIKE_ERROR_MESSAGE: string =
+  'We could not update that comment like. Please try again.';
+const COMMENT_SUBMISSION_UNKNOWN_MESSAGE: string =
+  'We could not confirm whether your comment was posted. Check the comments before trying again.';
+const COMMENT_SUBMISSION_ERROR_MESSAGE: string =
+  'We could not post your comment. Please try again.';
 
 type DetailsLoadOutcome = 'empty' | 'error' | 'not-found' | 'ready' | 'stale';
 
 export interface GameDetailsDialogController {
   readonly destroy: () => void;
   readonly element: HTMLDialogElement;
+  readonly setGameActionsService: (
+    service: AuthenticatedGameActionsService,
+  ) => void;
+  readonly setSession: (session: AppSession | undefined) => void;
   readonly synchronize: (slug: string | undefined) => void;
 }
+
+const areSessionsEqual = (
+  first: AppSession | undefined,
+  second: AppSession | undefined,
+): boolean =>
+  first === second ||
+  (first !== undefined &&
+    second !== undefined &&
+    first.authenticatedAt === second.authenticatedAt &&
+    first.displayName === second.displayName &&
+    first.email === second.email);
+
+const isAmbiguousMutationError = (error: unknown): boolean => {
+  return (
+    error instanceof ApiAbortError ||
+    error instanceof ApiNetworkError ||
+    error instanceof ApiResponseError ||
+    !(error instanceof ApiHttpError) ||
+    error.status >= 500
+  );
+};
+
+const requestAuthentication = (message: string): void => {
+  dispatchSnackbar({ message, variant: 'error' });
+  dispatchAuthDialogRequest('login');
+};
 
 const getRequiredElement = <ElementType extends Element>(
   root: ParentNode,
@@ -64,6 +138,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
       <div class="game-details-dialog__details" data-game-details-content></div>
       <section class="game-comments game-details-dialog__comments" data-game-comments-section aria-labelledby="${GAME_COMMENTS_TITLE_ID}">
         <h3 id="${GAME_COMMENTS_TITLE_ID}" data-game-comments-heading>Comments</h3>
+        <div data-game-comment-composer></div>
         <div class="game-comments__list" data-game-comments-content></div>
       </section>
     </div>
@@ -90,16 +165,144 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
     dialog,
     '[data-game-comments-content]',
   );
+  const commentComposerHost: HTMLDivElement =
+    getRequiredElement<HTMLDivElement>(dialog, '[data-game-comment-composer]');
 
   let activeSlug: string | undefined;
+  let activeSession: AppSession | undefined;
+  let avatarColorResolver: AvatarColorResolver = createAvatarColorRegistry();
   let closeTimer: number | undefined;
+  let commentComposer: CommentComposerElements | undefined;
+  let commentSubmission:
+    | {
+        readonly email: string;
+        readonly slug: string;
+        readonly viewVersion: number;
+      }
+    | undefined;
   let commentsRequest: AbortController | undefined;
   let commentsRequestVersion: number = 0;
+  const commentsById = new Map<string, GameComment>();
   let detailsRequest: AbortController | undefined;
   let detailsRequestVersion: number = 0;
+  let favoriteMutation:
+    | {
+        readonly email: string;
+        readonly slug: string;
+        readonly viewVersion: number;
+      }
+    | undefined;
+  let gameActionsService: AuthenticatedGameActionsService | undefined;
   let isDestroyed: boolean = false;
+  const likeMutations = new Map<
+    string,
+    {
+      readonly email: string;
+      readonly slug: string;
+      readonly viewVersion: number;
+    }
+  >();
   let openAnimationFrame: number | undefined;
+  let renderedGame: GameDetails | undefined;
   let returnFocusElement: HTMLElement | null = null;
+  let viewVersion: number = 0;
+
+  const getFavoriteControls = ():
+    | {
+        readonly button: HTMLButtonElement;
+        readonly count: HTMLElement;
+      }
+    | undefined => {
+    const button: HTMLButtonElement | null =
+      detailsContent.querySelector<HTMLButtonElement>('[data-game-favorite]');
+    const count: HTMLElement | null = detailsContent.querySelector<HTMLElement>(
+      '[data-game-favorite-count]',
+    );
+
+    return button === null || count === null ? undefined : { button, count };
+  };
+
+  const getCommentLikeButton = (
+    commentId: string,
+  ): HTMLButtonElement | undefined => {
+    return [
+      ...commentsContent.querySelectorAll<HTMLButtonElement>(
+        '[data-comment-like]',
+      ),
+    ].find((button: HTMLButtonElement): boolean => {
+      return button.dataset.commentId === commentId;
+    });
+  };
+
+  const isCurrentMutationView = (
+    slug: string,
+    email: string,
+    mutationViewVersion: number,
+  ): boolean => {
+    return (
+      !isDestroyed &&
+      dialog.open &&
+      mutationViewVersion === viewVersion &&
+      activeSlug === slug &&
+      activeSession?.email === email
+    );
+  };
+
+  const renderCommentComposer = (): void => {
+    commentComposer = undefined;
+    commentComposerHost.replaceChildren();
+
+    if (activeSession === undefined || activeSlug === undefined) {
+      return;
+    }
+
+    const composer: CommentComposerElements = createCommentComposer(
+      getProfileName(activeSession),
+    );
+    const isPending: boolean =
+      commentSubmission?.slug === activeSlug &&
+      commentSubmission.email === activeSession.email &&
+      commentSubmission.viewVersion === viewVersion;
+    updateCommentComposerState(composer, { isPending });
+    commentComposer = composer;
+    commentComposerHost.append(composer.element);
+  };
+
+  const renderFavoriteState = (isPending: boolean): void => {
+    if (renderedGame === undefined) {
+      return;
+    }
+
+    const controls = getFavoriteControls();
+    if (controls === undefined) {
+      return;
+    }
+
+    updateGameFavoriteControls(controls.button, controls.count, {
+      gameName: renderedGame.name,
+      isFavorited: renderedGame.isLikedByCurrentUser,
+      isPending,
+      likesCount: renderedGame.likesCount,
+    });
+  };
+
+  const renderCommentLikeState = (
+    commentId: string,
+    isPending: boolean,
+  ): void => {
+    const comment: GameComment | undefined = commentsById.get(commentId);
+    const button: HTMLButtonElement | undefined =
+      getCommentLikeButton(commentId);
+    if (comment === undefined || button === undefined) {
+      return;
+    }
+
+    updateCommentLikeControl(button, {
+      isLikedByCurrentUser: comment.isLikedByCurrentUser,
+      isPending,
+      likesCount: comment.likesCount,
+    });
+  };
 
   const setDialogLabel = (label: string): void => {
     dialog.removeAttribute('aria-labelledby');
@@ -150,6 +353,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
   };
 
   const renderDetailsLoading = (): void => {
+    renderedGame = undefined;
     setDialogLabel('Loading game details');
     detailsContent.setAttribute('aria-busy', 'true');
     detailsContent.replaceChildren(
@@ -161,6 +365,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
   };
 
   const renderDetailsEmpty = (): void => {
+    renderedGame = undefined;
     setDialogLabel('Game details unavailable');
     detailsContent.removeAttribute('aria-busy');
     detailsContent.replaceChildren(
@@ -172,6 +377,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
   };
 
   const renderGameNotFound = (): void => {
+    renderedGame = undefined;
     setDialogLabel('Game Not Found');
     detailsContent.removeAttribute('aria-busy');
     detailsContent.replaceChildren(
@@ -185,6 +391,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
   };
 
   const renderDetailsError = (slug: string): void => {
+    renderedGame = undefined;
     setDialogLabel('Unable to load game details');
     detailsContent.removeAttribute('aria-busy');
     detailsContent.replaceChildren(
@@ -204,12 +411,20 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
   };
 
   const renderGameDetails = (game: GameDetails): void => {
+    renderedGame = game;
     detailsContent.removeAttribute('aria-busy');
     detailsContent.replaceChildren(createGameDetailsFragment(game));
+    renderFavoriteState(
+      favoriteMutation !== undefined &&
+        favoriteMutation.slug === activeSlug &&
+        favoriteMutation.email === activeSession?.email &&
+        favoriteMutation.viewVersion === viewVersion,
+    );
     setDialogTitle();
   };
 
   const renderCommentsLoading = (): void => {
+    commentsById.clear();
     commentsSection.hidden = false;
     commentsHeading.textContent = 'Comments';
     commentsContent.setAttribute('aria-busy', 'true');
@@ -258,7 +473,22 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
       return;
     }
 
-    commentsContent.replaceChildren(...createCommentElements(response.data));
+    for (const comment of response.data) {
+      commentsById.set(comment.commentId, comment);
+    }
+    commentsContent.replaceChildren(
+      ...createCommentElements(response.data, avatarColorResolver),
+    );
+    for (const comment of response.data) {
+      const mutation = likeMutations.get(comment.commentId);
+      renderCommentLikeState(
+        comment.commentId,
+        mutation !== undefined &&
+          mutation.slug === activeSlug &&
+          mutation.email === activeSession?.email &&
+          mutation.viewVersion === viewVersion,
+      );
+    }
   };
 
   const loadDetails = async (slug: string): Promise<DetailsLoadOutcome> => {
@@ -271,6 +501,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
     try {
       const response = await fetchGameDetails(slug, {
         signal: request.signal,
+        userEmail: activeSession?.email,
       });
       if (!isCurrentDetailsRequest(request, requestVersion, slug)) {
         return 'stale';
@@ -329,6 +560,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
         limit: LATEST_COMMENTS_LIMIT,
         signal: request.signal,
         sort: 'newest',
+        userEmail: activeSession?.email,
       });
       if (!isCurrentCommentsRequest(request, requestVersion, slug)) {
         return;
@@ -365,6 +597,275 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
     } finally {
       if (commentsRequest === request) {
         commentsRequest = undefined;
+      }
+    }
+  };
+
+  const getActionSession = (signInMessage: string): AppSession | undefined => {
+    const session: AppSession | undefined =
+      gameActionsService?.getActiveSession();
+    if (session === undefined) {
+      requestAuthentication(signInMessage);
+      return undefined;
+    }
+
+    return session;
+  };
+
+  const toggleFavorite = async (): Promise<void> => {
+    const slug: string | undefined = activeSlug;
+    const service: AuthenticatedGameActionsService | undefined =
+      gameActionsService;
+    if (
+      slug === undefined ||
+      service === undefined ||
+      renderedGame === undefined
+    ) {
+      return;
+    }
+
+    const session: AppSession | undefined = getActionSession(
+      FAVORITE_SIGN_IN_MESSAGE,
+    );
+    if (
+      session === undefined ||
+      (favoriteMutation?.slug === slug &&
+        favoriteMutation.email === session.email &&
+        favoriteMutation.viewVersion === viewVersion)
+    ) {
+      return;
+    }
+
+    const mutationViewVersion: number = viewVersion;
+    const mutation = {
+      email: session.email,
+      slug,
+      viewVersion: mutationViewVersion,
+    };
+    favoriteMutation = mutation;
+    renderFavoriteState(true);
+
+    try {
+      const result: FavoriteGameResult = await service.toggleFavorite(slug);
+      if (!isCurrentMutationView(slug, session.email, mutationViewVersion)) {
+        return;
+      }
+
+      if (renderedGame !== undefined) {
+        renderedGame = {
+          ...renderedGame,
+          isLikedByCurrentUser: result.isFavorited,
+          likesCount: result.likesCount,
+        };
+        renderFavoriteState(false);
+      }
+      dispatchSnackbar({
+        message: result.isFavorited
+          ? 'Game added to favorites.'
+          : 'Game removed from favorites.',
+        variant: 'success',
+      });
+    } catch (error: unknown) {
+      if (!isCurrentMutationView(slug, session.email, mutationViewVersion)) {
+        return;
+      }
+
+      if (error instanceof AuthenticationRequiredError) {
+        requestAuthentication(FAVORITE_SIGN_IN_MESSAGE);
+        return;
+      }
+
+      const isAmbiguous: boolean = isAmbiguousMutationError(error);
+      dispatchSnackbar({
+        message: isAmbiguous
+          ? FAVORITE_UNKNOWN_MESSAGE
+          : FAVORITE_ERROR_MESSAGE,
+        variant: 'error',
+      });
+      if (isAmbiguous) {
+        void loadDetails(slug);
+      }
+    } finally {
+      if (favoriteMutation === mutation) {
+        favoriteMutation = undefined;
+      }
+      if (isCurrentMutationView(slug, session.email, mutationViewVersion)) {
+        renderFavoriteState(false);
+      }
+    }
+  };
+
+  const submitComment = async (): Promise<void> => {
+    const slug: string | undefined = activeSlug;
+    const service: AuthenticatedGameActionsService | undefined =
+      gameActionsService;
+    const composer: CommentComposerElements | undefined = commentComposer;
+    if (slug === undefined || service === undefined || composer === undefined) {
+      return;
+    }
+
+    const session: AppSession | undefined = getActionSession(
+      'Sign in to post comments.',
+    );
+    if (
+      session === undefined ||
+      (commentSubmission?.slug === slug &&
+        commentSubmission.email === session.email &&
+        commentSubmission.viewVersion === viewVersion)
+    ) {
+      return;
+    }
+
+    const mutationViewVersion: number = viewVersion;
+    const mutation = {
+      email: session.email,
+      slug,
+      viewVersion: mutationViewVersion,
+    };
+    const draft: string = composer.textarea.value;
+    let feedback:
+      | { readonly message: string; readonly tone: 'error' | 'status' }
+      | undefined;
+    let shouldRefreshComments: boolean = false;
+    commentSubmission = mutation;
+    updateCommentComposerState(composer, { isPending: true });
+
+    try {
+      await service.submitComment(slug, draft);
+      if (!isCurrentMutationView(slug, session.email, mutationViewVersion)) {
+        return;
+      }
+
+      composer.textarea.value = '';
+      resizeCommentTextarea(composer.textarea);
+      shouldRefreshComments = true;
+      dispatchSnackbar({ message: 'Comment posted.', variant: 'success' });
+    } catch (error: unknown) {
+      if (!isCurrentMutationView(slug, session.email, mutationViewVersion)) {
+        return;
+      }
+
+      if (error instanceof AuthenticationRequiredError) {
+        requestAuthentication('Sign in to post comments.');
+        return;
+      }
+
+      let message: string = COMMENT_SUBMISSION_ERROR_MESSAGE;
+      if (error instanceof CommentValidationError) {
+        message = error.message;
+      } else if (isAmbiguousMutationError(error)) {
+        message = COMMENT_SUBMISSION_UNKNOWN_MESSAGE;
+      }
+      feedback = { message, tone: 'error' };
+      dispatchSnackbar({ message: feedback.message, variant: 'error' });
+    } finally {
+      if (commentSubmission === mutation) {
+        commentSubmission = undefined;
+      }
+      if (
+        commentComposer === composer &&
+        isCurrentMutationView(slug, session.email, mutationViewVersion)
+      ) {
+        updateCommentComposerState(composer, {
+          isPending: false,
+          ...feedback,
+        });
+        if (feedback !== undefined) {
+          composer.textarea.focus({ preventScroll: true });
+        }
+      }
+    }
+
+    if (
+      shouldRefreshComments &&
+      isCurrentMutationView(slug, session.email, mutationViewVersion)
+    ) {
+      void loadComments(slug);
+    }
+  };
+
+  const toggleCommentLike = async (commentId: string): Promise<void> => {
+    const slug: string | undefined = activeSlug;
+    const service: AuthenticatedGameActionsService | undefined =
+      gameActionsService;
+    if (
+      slug === undefined ||
+      service === undefined ||
+      !commentsById.has(commentId)
+    ) {
+      return;
+    }
+
+    const session: AppSession | undefined = getActionSession(
+      COMMENT_LIKE_SIGN_IN_MESSAGE,
+    );
+    const currentLikeMutation = likeMutations.get(commentId);
+    if (
+      session === undefined ||
+      (currentLikeMutation?.slug === slug &&
+        currentLikeMutation.email === session.email &&
+        currentLikeMutation.viewVersion === viewVersion)
+    ) {
+      return;
+    }
+
+    const mutationViewVersion: number = viewVersion;
+    const mutation = {
+      email: session.email,
+      slug,
+      viewVersion: mutationViewVersion,
+    };
+    likeMutations.set(commentId, mutation);
+    renderCommentLikeState(commentId, true);
+
+    try {
+      const result: CommentLikeResult =
+        await service.toggleCommentLike(commentId);
+      if (!isCurrentMutationView(slug, session.email, mutationViewVersion)) {
+        return;
+      }
+
+      const comment: GameComment | undefined = commentsById.get(commentId);
+      if (comment !== undefined) {
+        commentsById.set(commentId, {
+          ...comment,
+          isLikedByCurrentUser: result.isLikedByCurrentUser,
+          likesCount: result.likesCount,
+        });
+        renderCommentLikeState(commentId, false);
+      }
+      dispatchSnackbar({
+        message: result.isLikedByCurrentUser
+          ? 'Comment liked.'
+          : 'Comment like removed.',
+        variant: 'success',
+      });
+    } catch (error: unknown) {
+      if (!isCurrentMutationView(slug, session.email, mutationViewVersion)) {
+        return;
+      }
+
+      if (error instanceof AuthenticationRequiredError) {
+        requestAuthentication(COMMENT_LIKE_SIGN_IN_MESSAGE);
+        return;
+      }
+
+      const isAmbiguous: boolean = isAmbiguousMutationError(error);
+      dispatchSnackbar({
+        message: isAmbiguous
+          ? COMMENT_LIKE_UNKNOWN_MESSAGE
+          : COMMENT_LIKE_ERROR_MESSAGE,
+        variant: 'error',
+      });
+      if (isAmbiguous) {
+        void loadComments(slug);
+      }
+    } finally {
+      if (likeMutations.get(commentId) === mutation) {
+        likeMutations.delete(commentId);
+      }
+      if (isCurrentMutationView(slug, session.email, mutationViewVersion)) {
+        renderCommentLikeState(commentId, false);
       }
     }
   };
@@ -456,16 +957,22 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
   };
 
   const openGame = (slug: string): void => {
+    viewVersion += 1;
     const activeElement: Element | null = document.activeElement;
     const shouldMoveFocusToClose: boolean =
       dialog.open &&
       activeElement !== null &&
       (detailsContent.contains(activeElement) ||
-        commentsContent.contains(activeElement));
+        commentsContent.contains(activeElement) ||
+        commentComposerHost.contains(activeElement));
+    if (slug !== activeSlug) {
+      avatarColorResolver = createAvatarColorRegistry();
+    }
     activeSlug = slug;
     dialog.dataset.gameSlug = slug;
     dialog.scrollTop = 0;
     commentsSection.hidden = false;
+    renderCommentComposer();
     openDialog();
     if (shouldMoveFocusToClose) {
       closeButton.focus({ preventScroll: true });
@@ -475,7 +982,13 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
   };
 
   const deactivateGame = (): void => {
+    viewVersion += 1;
     activeSlug = undefined;
+    renderedGame = undefined;
+    commentsById.clear();
+    commentComposer = undefined;
+    commentComposerHost.replaceChildren();
+    avatarColorResolver = createAvatarColorRegistry();
     delete dialog.dataset.gameSlug;
     abortDetailsRequest();
     abortCommentsRequest();
@@ -493,6 +1006,21 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
         return;
       }
 
+      if (event.target.closest('[data-game-favorite]') !== null) {
+        void toggleFavorite();
+        return;
+      }
+
+      const commentLikeButton: HTMLButtonElement | null =
+        event.target.closest<HTMLButtonElement>('[data-comment-like]');
+      if (commentLikeButton !== null) {
+        const { commentId } = commentLikeButton.dataset;
+        if (commentId !== undefined) {
+          void toggleCommentLike(commentId);
+        }
+        return;
+      }
+
       if (event.target !== dialog) {
         return;
       }
@@ -506,6 +1034,57 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
       if (!isInsideDialog) {
         dispatchGameDetailsCloseRequest();
       }
+    },
+    { signal },
+  );
+
+  dialog.addEventListener(
+    'submit',
+    (event: SubmitEvent): void => {
+      if (
+        commentComposer === undefined ||
+        event.target !== commentComposer.element
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      void submitComment();
+    },
+    { signal },
+  );
+
+  dialog.addEventListener(
+    'input',
+    (event: Event): void => {
+      if (
+        commentComposer === undefined ||
+        event.target !== commentComposer.textarea
+      ) {
+        return;
+      }
+
+      resizeCommentTextarea(commentComposer.textarea);
+      updateCommentComposerState(commentComposer, { isPending: false });
+    },
+    { signal },
+  );
+
+  dialog.addEventListener(
+    'keydown',
+    (event: KeyboardEvent): void => {
+      if (
+        commentComposer === undefined ||
+        event.target !== commentComposer.textarea ||
+        event.key !== 'Enter' ||
+        event.shiftKey ||
+        event.isComposing
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      commentComposer.element.requestSubmit();
     },
     { signal },
   );
@@ -543,6 +1122,26 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
       returnFocusElement = null;
     },
     element: dialog,
+    setGameActionsService: (service: AuthenticatedGameActionsService): void => {
+      gameActionsService = service;
+    },
+    setSession: (session: AppSession | undefined): void => {
+      if (areSessionsEqual(activeSession, session)) {
+        return;
+      }
+
+      activeSession = session;
+      viewVersion += 1;
+      renderCommentComposer();
+
+      if (activeSlug === undefined || !dialog.open) {
+        return;
+      }
+
+      const slug: string = activeSlug;
+      const detailsOutcome: Promise<DetailsLoadOutcome> = loadDetails(slug);
+      void loadComments(slug, detailsOutcome);
+    },
     synchronize: (slug: string | undefined): void => {
       if (slug === undefined) {
         deactivateGame();

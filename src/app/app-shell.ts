@@ -12,6 +12,7 @@ import {
 } from '../components/snackbar/snackbar-events';
 import type { AppSession } from '../features/auth/app-session';
 import type { AuthenticationService } from '../features/auth/authentication-service';
+import type { AuthenticatedGameActionsService } from '../features/game-actions/authenticated-game-actions';
 import type { UrlState } from './url-state';
 
 export interface AppShell {
@@ -20,6 +21,9 @@ export interface AppShell {
   readonly outlet: HTMLElement;
   readonly setActivePath: (path: string) => void;
   readonly setAuthenticationService: (service: AuthenticationService) => void;
+  readonly setGameActionsService: (
+    service: AuthenticatedGameActionsService,
+  ) => void;
   readonly setSession: (session: AppSession | undefined) => void;
   readonly synchronizeDialogs: (state: UrlState) => void;
 }
@@ -105,8 +109,12 @@ export const createAppShell = (rootElement: HTMLElement): AppShell => {
     setAuthenticationService: (service: AuthenticationService): void => {
       authDialog.setAuthenticationService(service);
     },
+    setGameActionsService: (service: AuthenticatedGameActionsService): void => {
+      gameDetailsDialog.setGameActionsService(service);
+    },
     setSession: (session: AppSession | undefined): void => {
       header.setSession(session);
+      gameDetailsDialog.setSession(session);
     },
     synchronizeDialogs: (state: UrlState): void => {
       authDialog.synchronize(state.auth);

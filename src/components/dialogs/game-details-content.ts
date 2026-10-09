@@ -19,7 +19,38 @@ const likesFormatter: Intl.NumberFormat = new Intl.NumberFormat('en-US', {
 });
 const scoreFormatter: Intl.NumberFormat = new Intl.NumberFormat('en-US');
 const recordMedals: readonly string[] = ['🥇', '🥈', '🥉'];
-const avatarModifiers: readonly string[] = ['blue', 'yellow', 'pink'];
+const avatarColors = ['green', 'blue', 'pink', 'lavender'] as const;
+
+export type AvatarColor = (typeof avatarColors)[number];
+
+export type AvatarColorResolver = (comment: GameComment) => AvatarColor;
+
+export interface CommentComposerElements {
+  readonly avatar: HTMLSpanElement;
+  readonly element: HTMLFormElement;
+  readonly status: HTMLParagraphElement;
+  readonly submitButton: HTMLButtonElement;
+  readonly textarea: HTMLTextAreaElement;
+}
+
+export interface CommentComposerState {
+  readonly isPending: boolean;
+  readonly message?: string;
+  readonly tone?: 'error' | 'status';
+}
+
+export interface CommentLikeControlState {
+  readonly isLikedByCurrentUser: boolean;
+  readonly isPending?: boolean;
+  readonly likesCount: number;
+}
+
+export interface GameFavoriteControlState {
+  readonly gameName: string;
+  readonly isFavorited: boolean;
+  readonly isPending?: boolean;
+  readonly likesCount: number;
+}
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -31,6 +62,41 @@ const isNonEmptyString = (value: unknown): value is string => {
 
 const isFiniteNumber = (value: unknown): value is number => {
   return typeof value === 'number' && Number.isFinite(value);
+};
+
+const normalizeCount = (value: number): number => {
+  return Math.max(0, Math.trunc(value));
+};
+
+export const getAvatarInitial = (displayName: string): string => {
+  return [...displayName.trim()][0]?.toLocaleUpperCase() ?? '';
+};
+
+export const createAvatarColorRegistry = (
+  random: () => number = Math.random,
+): AvatarColorResolver => {
+  const colorsByAuthor = new Map<string, AvatarColor>();
+
+  return (comment: GameComment): AvatarColor => {
+    const normalizedAuthor: string = comment.authorName
+      .trim()
+      .toLocaleLowerCase();
+    const authorKey: string = normalizedAuthor || comment.commentId;
+    const existingColor: AvatarColor | undefined =
+      colorsByAuthor.get(authorKey);
+    if (existingColor !== undefined) {
+      return existingColor;
+    }
+
+    const randomValue: number = random();
+    const boundedValue: number = Number.isFinite(randomValue)
+      ? Math.min(Math.max(randomValue, 0), 1 - Number.EPSILON)
+      : 0;
+    const color: AvatarColor =
+      avatarColors[Math.floor(boundedValue * avatarColors.length)] ?? 'green';
+    colorsByAuthor.set(authorKey, color);
+    return color;
+  };
 };
 
 const isGameSpecs = (value: unknown): value is GameSpecs => {
@@ -105,16 +171,86 @@ const createStat = (
   iconPath: string,
   label: string,
   value: string,
+  valueDataAttribute?: string,
 ): HTMLSpanElement => {
   const stat: HTMLSpanElement = document.createElement('span');
+  const valueElement: HTMLSpanElement = document.createElement('span');
   stat.className = className;
   stat.setAttribute('role', 'img');
   stat.setAttribute('aria-label', label);
-  stat.append(
-    createIcon(iconPath, 'game-info__stat-icon'),
-    document.createTextNode(value),
-  );
+  valueElement.textContent = value;
+  if (valueDataAttribute !== undefined) {
+    valueElement.dataset[valueDataAttribute] = '';
+  }
+  stat.append(createIcon(iconPath, 'game-info__stat-icon'), valueElement);
   return stat;
+};
+
+const getFavoriteActionLabel = (
+  gameName: string,
+  isFavorited: boolean,
+): string => {
+  return isFavorited
+    ? `Remove ${gameName} from favorites`
+    : `Add ${gameName} to favorites`;
+};
+
+export const updateGameFavoriteControls = (
+  button: HTMLButtonElement,
+  countElement: HTMLElement,
+  state: GameFavoriteControlState,
+): void => {
+  const normalizedLikes: number = normalizeCount(state.likesCount);
+  const displayLikes: string = likesFormatter.format(normalizedLikes);
+  const favoriteLabel: HTMLElement | null = button.querySelector<HTMLElement>(
+    '[data-favorite-label]',
+  );
+
+  button.disabled = state.isPending === true;
+  button.ariaBusy = state.isPending === true ? 'true' : null;
+  button.ariaPressed = String(state.isFavorited);
+  button.classList.toggle('game-info__favorite--active', state.isFavorited);
+  button.setAttribute(
+    'aria-label',
+    `${getFavoriteActionLabel(state.gameName, state.isFavorited)}. ${displayLikes} ${normalizedLikes === 1 ? 'like' : 'likes'}.`,
+  );
+  countElement.textContent = displayLikes;
+  countElement.parentElement?.setAttribute(
+    'aria-label',
+    `${displayLikes} ${normalizedLikes === 1 ? 'like' : 'likes'}`,
+  );
+  if (favoriteLabel !== null) {
+    favoriteLabel.textContent = state.isFavorited
+      ? 'Remove from Favorites'
+      : 'Add to Favorites';
+  }
+};
+
+export const updateCommentLikeControl = (
+  button: HTMLButtonElement,
+  state: CommentLikeControlState,
+): void => {
+  const normalizedLikes: number = normalizeCount(state.likesCount);
+  const displayLikes: string = scoreFormatter.format(normalizedLikes);
+  const likesCount: HTMLElement | null = button.querySelector<HTMLElement>(
+    '[data-comment-like-count]',
+  );
+  const action: string = state.isLikedByCurrentUser ? 'Unlike' : 'Like';
+
+  button.disabled = state.isPending === true;
+  button.ariaBusy = state.isPending === true ? 'true' : null;
+  button.ariaPressed = String(state.isLikedByCurrentUser);
+  button.classList.toggle(
+    'game-comment__like--active',
+    state.isLikedByCurrentUser,
+  );
+  button.setAttribute(
+    'aria-label',
+    `${action} this comment. ${displayLikes} ${normalizedLikes === 1 ? 'like' : 'likes'}.`,
+  );
+  if (likesCount !== null) {
+    likesCount.textContent = displayLikes;
+  }
 };
 
 const createSpec = (label: string, value: string): HTMLDivElement => {
@@ -210,7 +346,16 @@ export const createGameDetailsFragment = (
   const favoriteLabel: HTMLSpanElement = document.createElement('span');
   const displayRating: string = game.rating.toFixed(1);
   const displayLikes: string = likesFormatter.format(game.likesCount);
-  const favoriteAction: string = game.isLikedByCurrentUser ? 'Remove' : 'Add';
+  const likesStat: HTMLSpanElement = createStat(
+    'game-info__likes',
+    heartIconPath,
+    `${displayLikes} likes`,
+    displayLikes,
+    'gameFavoriteCount',
+  );
+  const likesCount: HTMLElement | null = likesStat.querySelector<HTMLElement>(
+    '[data-game-favorite-count]',
+  );
   const nowInMilliseconds: number = Date.now();
 
   hero.className = 'game-details-dialog__hero';
@@ -235,12 +380,7 @@ export const createGameDetailsFragment = (
       `Rated ${displayRating} out of 5`,
       displayRating,
     ),
-    createStat(
-      'game-info__likes',
-      heartIconPath,
-      `${displayLikes} likes`,
-      displayLikes,
-    ),
+    likesStat,
   );
   heading.append(title, stats);
 
@@ -259,24 +399,20 @@ export const createGameDetailsFragment = (
   playButton.type = 'button';
   playButton.textContent = 'Play Now';
   favoriteButton.className = 'btn btn--secondary game-info__favorite';
-  favoriteButton.classList.toggle(
-    'game-info__favorite--active',
-    game.isLikedByCurrentUser,
-  );
   favoriteButton.type = 'button';
-  favoriteButton.disabled = true;
-  favoriteButton.ariaPressed = String(game.isLikedByCurrentUser);
-  favoriteButton.setAttribute(
-    'aria-label',
-    `${favoriteAction} ${game.name} ${favoriteAction === 'Add' ? 'to' : 'from'} favorites. Sign in to change favorites.`,
-  );
-  favoriteButton.title = 'Sign in to manage favorites';
+  favoriteButton.dataset.gameFavorite = '';
   favoriteLabel.dataset.favoriteLabel = '';
-  favoriteLabel.textContent = `${favoriteAction} ${favoriteAction === 'Add' ? 'to' : 'from'} Favorites`;
   favoriteButton.append(
     createIcon(heartIconPath, 'game-info__favorite-icon'),
     favoriteLabel,
   );
+  if (likesCount !== null) {
+    updateGameFavoriteControls(favoriteButton, likesCount, {
+      gameName: game.name,
+      isFavorited: game.isLikedByCurrentUser,
+      likesCount: game.likesCount,
+    });
+  }
   actions.append(playButton, favoriteButton);
 
   info.append(heading, description, specs, actions);
@@ -290,8 +426,8 @@ export const createGameDetailsFragment = (
 
 const createComment = (
   comment: GameComment,
-  index: number,
   nowInMilliseconds: number,
+  resolveAvatarColor: AvatarColorResolver,
 ): HTMLElement => {
   const article: HTMLElement = document.createElement('article');
   const header: HTMLElement = document.createElement('header');
@@ -299,20 +435,17 @@ const createComment = (
   const author: HTMLHeadingElement = document.createElement('h4');
   const createdAt: HTMLTimeElement = document.createElement('time');
   const text: HTMLParagraphElement = document.createElement('p');
-  const likes: HTMLSpanElement = document.createElement('span');
+  const likes: HTMLButtonElement = document.createElement('button');
   const likesCount: HTMLSpanElement = document.createElement('span');
-  const normalizedLikes: number = Math.max(0, Math.trunc(comment.likesCount));
-  const displayLikes: string = scoreFormatter.format(normalizedLikes);
   const authorName: string = comment.authorName.trim() || 'Anonymous player';
-  const avatarModifier: string =
-    avatarModifiers[index % avatarModifiers.length] ?? 'yellow';
+  const avatarColor: AvatarColor = resolveAvatarColor(comment);
 
   article.className = 'game-comment';
   article.dataset.commentId = comment.commentId;
   header.className = 'game-comment__header';
-  avatar.className = `game-avatar game-avatar--${avatarModifier}`;
+  avatar.className = `game-avatar game-avatar--${avatarColor}`;
   avatar.ariaHidden = 'true';
-  avatar.textContent = authorName.charAt(0).toUpperCase();
+  avatar.textContent = getAvatarInitial(authorName);
   author.className = 'game-comment__author';
   author.textContent = authorName;
   createdAt.dateTime = comment.createdAt;
@@ -324,24 +457,98 @@ const createComment = (
 
   text.textContent = comment.text;
   likes.className = 'game-comment__like';
-  likes.setAttribute(
-    'aria-label',
-    `${displayLikes} ${normalizedLikes === 1 ? 'like' : 'likes'}`,
-  );
-  likesCount.textContent = displayLikes;
+  likes.type = 'button';
+  likes.dataset.commentId = comment.commentId;
+  likes.dataset.commentLike = '';
+  likesCount.dataset.commentLikeCount = '';
   likes.append(
     createIcon(heartIconPath, 'game-comment__like-icon'),
     likesCount,
   );
+  updateCommentLikeControl(likes, {
+    isLikedByCurrentUser: comment.isLikedByCurrentUser,
+    likesCount: comment.likesCount,
+  });
   article.append(header, text, likes);
   return article;
 };
 
 export const createCommentElements = (
   comments: readonly GameComment[],
+  resolveAvatarColor: AvatarColorResolver = createAvatarColorRegistry(),
 ): readonly HTMLElement[] => {
   const nowInMilliseconds: number = Date.now();
-  return comments.map((comment: GameComment, index: number): HTMLElement =>
-    createComment(comment, index, nowInMilliseconds),
+  return comments.map((comment: GameComment): HTMLElement =>
+    createComment(comment, nowInMilliseconds, resolveAvatarColor),
   );
+};
+
+export const createCommentComposer = (
+  displayName: string,
+): CommentComposerElements => {
+  const element: HTMLFormElement = document.createElement('form');
+  const avatar: HTMLSpanElement = document.createElement('span');
+  const field: HTMLDivElement = document.createElement('div');
+  const label: HTMLLabelElement = document.createElement('label');
+  const textarea: HTMLTextAreaElement = document.createElement('textarea');
+  const submitButton: HTMLButtonElement = document.createElement('button');
+  const status: HTMLParagraphElement = document.createElement('p');
+  const normalizedDisplayName: string = displayName.trim();
+
+  element.className = 'game-comment-composer';
+  element.dataset.commentComposer = '';
+  element.noValidate = true;
+  avatar.className = 'game-avatar game-avatar--green';
+  avatar.ariaHidden = 'true';
+  avatar.textContent = getAvatarInitial(normalizedDisplayName);
+  field.className = 'game-comment-composer__field';
+  label.className = 'game-comment-composer__label';
+  label.htmlFor = 'game-comment-text';
+  label.textContent = 'Add a comment';
+  textarea.id = 'game-comment-text';
+  textarea.name = 'comment';
+  textarea.rows = 1;
+  textarea.required = true;
+  textarea.maxLength = 500;
+  textarea.placeholder = 'Share your thoughts…';
+  textarea.dataset.commentText = '';
+  textarea.setAttribute('aria-describedby', 'game-comment-composer-status');
+  submitButton.className = 'btn btn--primary game-comment-composer__submit';
+  submitButton.type = 'submit';
+  submitButton.dataset.commentSubmit = '';
+  submitButton.textContent = 'Send';
+  status.id = 'game-comment-composer-status';
+  status.className = 'game-comment-composer__status';
+  status.dataset.commentStatus = '';
+  status.setAttribute('aria-live', 'polite');
+  status.setAttribute('role', 'status');
+  status.hidden = true;
+
+  field.append(label, textarea);
+  element.append(avatar, field, submitButton, status);
+  return { avatar, element, status, submitButton, textarea };
+};
+
+export const resizeCommentTextarea = (textarea: HTMLTextAreaElement): void => {
+  textarea.style.height = 'auto';
+  textarea.style.height = `${textarea.scrollHeight}px`;
+};
+
+export const updateCommentComposerState = (
+  composer: CommentComposerElements,
+  state: CommentComposerState,
+): void => {
+  const message: string = state.message?.trim() ?? '';
+  const isError: boolean = state.tone === 'error';
+
+  composer.textarea.disabled = state.isPending;
+  composer.submitButton.disabled = state.isPending;
+  composer.element.ariaBusy = state.isPending ? 'true' : null;
+  composer.status.textContent = message;
+  composer.status.hidden = message.length === 0;
+  composer.status.classList.toggle(
+    'game-comment-composer__status--error',
+    isError,
+  );
+  composer.status.setAttribute('role', isError ? 'alert' : 'status');
 };
