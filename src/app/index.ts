@@ -5,6 +5,7 @@ import { Router } from './router';
 import { homePage } from '../pages/home/home';
 import { libraryPage } from '../pages/library/library';
 import { notFoundPage } from '../pages/not-found/not-found';
+import { initializeFirebase } from '../services/firebase';
 
 const ROOT_ELEMENT_ID: string = 'app';
 
@@ -17,6 +18,7 @@ const createRootElement = (): HTMLDivElement => {
 };
 
 const initializeApp = (): void => {
+  initializeFirebase();
   const rootElement: HTMLDivElement = createRootElement();
   const shell: AppShell = createAppShell(rootElement);
   const router: Router = new Router(shell.outlet, shell.setActivePath);
