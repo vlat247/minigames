@@ -21,11 +21,16 @@ import {
 } from './game-details-dialog';
 import {
   SNACKBAR_SHOW_EVENT,
+  dispatchSnackbar,
   isSnackbarRequestDetail,
 } from '../snackbar/snackbar-events';
 import type { SnackbarOptions } from '../snackbar/snackbar';
 import type { AppSession } from '../../features/auth/app-session';
-import type { AuthenticatedGameActionsService } from '../../features/game-actions/authenticated-game-actions';
+import { SESSION_EXPIRED_MESSAGE } from '../../features/auth/session-controller';
+import {
+  AuthenticationRequiredError,
+  type AuthenticatedGameActionsService,
+} from '../../features/game-actions/authenticated-game-actions';
 import {
   ApiHttpError,
   ApiNetworkError,
@@ -176,6 +181,14 @@ const createHttpError = (status: number, statusText: string): ApiHttpError =>
     {},
   );
 
+const expireFixtureSession = (fixture: GameDetailsDialogFixture): void => {
+  fixture.setSession(undefined);
+  dispatchSnackbar({
+    message: SESSION_EXPIRED_MESSAGE,
+    variant: 'error',
+  });
+};
+
 const getRequiredElement = <ElementType extends Element>(
   root: ParentNode,
   selector: string,
@@ -238,6 +251,23 @@ const waitForReadyDialog = async (dialog: HTMLDialogElement): Promise<void> => {
     expect(dialog.querySelectorAll('[data-comment-like]')).toHaveLength(
       COMMENTS.length,
     );
+  });
+};
+
+const expectGuestRefetch = async (): Promise<void> => {
+  await vi.waitFor(() => {
+    expect(fetchGameDetailsMock).toHaveBeenCalledTimes(2);
+    expect(fetchGameCommentsMock).toHaveBeenCalledTimes(2);
+  });
+  expect(fetchGameDetailsMock).toHaveBeenNthCalledWith(2, SLUG, {
+    signal: expect.any(AbortSignal),
+    userEmail: undefined,
+  });
+  expect(fetchGameCommentsMock).toHaveBeenNthCalledWith(2, SLUG, {
+    limit: 3,
+    signal: expect.any(AbortSignal),
+    sort: 'newest',
+    userEmail: undefined,
   });
 };
 
@@ -454,6 +484,148 @@ describe('game details dialog authentication guards', () => {
       variant: 'warning',
     });
     expect(fixture.serviceSpies.toggleCommentLike).not.toHaveBeenCalled();
+  });
+
+  it('preserves expiration feedback when the first action guard expires the session', async () => {
+    const fixture = createFixture();
+    await waitForReadyDialog(fixture.dialog);
+    fixture.serviceSpies.getActiveSession.mockImplementationOnce(() => {
+      expireFixtureSession(fixture);
+      return;
+    });
+
+    dispatchDelegatedClick(
+      getRequiredElement(fixture.dialog, '[data-game-favorite]'),
+    );
+
+    expect(fixture.authRequests).toEqual([{ mode: 'login' }]);
+    expect(fixture.snackbarMessages).toEqual([
+      { message: SESSION_EXPIRED_MESSAGE, variant: 'error' },
+    ]);
+    expect(fixture.serviceSpies.toggleFavorite).not.toHaveBeenCalled();
+    await expectGuestRefetch();
+  });
+
+  it('opens Auth when the favorite service guard expires the session', async () => {
+    const fixture = createFixture();
+    await waitForReadyDialog(fixture.dialog);
+    fixture.serviceSpies.toggleFavorite.mockImplementationOnce(() => {
+      expireFixtureSession(fixture);
+      return Promise.reject(new AuthenticationRequiredError());
+    });
+
+    dispatchDelegatedClick(
+      getRequiredElement(fixture.dialog, '[data-game-favorite]'),
+    );
+
+    await vi.waitFor(() => {
+      expect(fixture.authRequests).toEqual([{ mode: 'login' }]);
+    });
+    expect(fixture.snackbarMessages).toEqual([
+      { message: SESSION_EXPIRED_MESSAGE, variant: 'error' },
+    ]);
+    expect(fixture.serviceSpies.toggleFavorite).toHaveBeenCalledExactlyOnceWith(
+      SLUG,
+    );
+    await expectGuestRefetch();
+
+    fixture.setSession(SECOND_SESSION);
+    await vi.waitFor(() => {
+      expect(fetchGameDetailsMock).toHaveBeenCalledTimes(3);
+      expect(fetchGameCommentsMock).toHaveBeenCalledTimes(3);
+    });
+    expect(fetchGameDetailsMock).toHaveBeenNthCalledWith(3, SLUG, {
+      signal: expect.any(AbortSignal),
+      userEmail: SECOND_SESSION.email,
+    });
+    expect(fetchGameCommentsMock).toHaveBeenNthCalledWith(3, SLUG, {
+      limit: 3,
+      signal: expect.any(AbortSignal),
+      sort: 'newest',
+      userEmail: SECOND_SESSION.email,
+    });
+    expect(fixture.serviceSpies.toggleFavorite).toHaveBeenCalledExactlyOnceWith(
+      SLUG,
+    );
+  });
+
+  it('opens Auth when the comment service guard expires the session', async () => {
+    const fixture = createFixture();
+    await waitForReadyDialog(fixture.dialog);
+    fixture.serviceSpies.submitComment.mockImplementationOnce(() => {
+      expireFixtureSession(fixture);
+      return Promise.reject(new AuthenticationRequiredError());
+    });
+    const composer = getRequiredElement<HTMLFormElement>(
+      fixture.dialog,
+      '[data-comment-composer]',
+    );
+    getRequiredElement<HTMLTextAreaElement>(
+      composer,
+      '[data-comment-text]',
+    ).value = 'Keep this draft';
+
+    dispatchSubmit(composer);
+
+    await vi.waitFor(() => {
+      expect(fixture.authRequests).toEqual([{ mode: 'login' }]);
+    });
+    expect(fixture.snackbarMessages).toEqual([
+      { message: SESSION_EXPIRED_MESSAGE, variant: 'error' },
+    ]);
+    expect(fixture.serviceSpies.submitComment).toHaveBeenCalledExactlyOnceWith(
+      SLUG,
+      'Keep this draft',
+    );
+    await expectGuestRefetch();
+  });
+
+  it('opens Auth when the comment-like service guard expires the session', async () => {
+    const fixture = createFixture();
+    await waitForReadyDialog(fixture.dialog);
+    fixture.serviceSpies.toggleCommentLike.mockImplementationOnce(() => {
+      expireFixtureSession(fixture);
+      return Promise.reject(new AuthenticationRequiredError());
+    });
+
+    dispatchDelegatedClick(getCommentLikeButton(fixture.dialog, 'comment-1'));
+
+    await vi.waitFor(() => {
+      expect(fixture.authRequests).toEqual([{ mode: 'login' }]);
+    });
+    expect(fixture.snackbarMessages).toEqual([
+      { message: SESSION_EXPIRED_MESSAGE, variant: 'error' },
+    ]);
+    expect(
+      fixture.serviceSpies.toggleCommentLike,
+    ).toHaveBeenCalledExactlyOnceWith('comment-1');
+    await expectGuestRefetch();
+  });
+
+  it('ignores a stale authentication error after an intervening session change', async () => {
+    const favoriteResult = createDeferred<FavoriteGameResult>();
+    const fixture = createFixture();
+    fixture.serviceSpies.toggleFavorite.mockReturnValue(favoriteResult.promise);
+    await waitForReadyDialog(fixture.dialog);
+
+    dispatchDelegatedClick(
+      getRequiredElement(fixture.dialog, '[data-game-favorite]'),
+    );
+    fixture.setSession(SECOND_SESSION);
+    fixture.setSession(undefined);
+    favoriteResult.reject(new AuthenticationRequiredError());
+    try {
+      await favoriteResult.promise;
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(AuthenticationRequiredError);
+    }
+    await Promise.resolve();
+
+    expect(fixture.authRequests).toEqual([]);
+    expect(fixture.snackbarMessages).toEqual([]);
+    expect(fixture.serviceSpies.toggleFavorite).toHaveBeenCalledExactlyOnceWith(
+      SLUG,
+    );
   });
 });
 
