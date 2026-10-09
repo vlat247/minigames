@@ -84,8 +84,15 @@ describe('game details content', () => {
     expect(button.ariaPressed).toBe('true');
     expect(button.classList).toContain('game-info__favorite--active');
     expect(button.querySelector('[data-favorite-label]')?.textContent).toBe(
-      'Remove from Favorites',
+      'Updating…',
     );
+    expect(
+      getRequiredElement<HTMLElement>(button, '[data-favorite-pending]').hidden,
+    ).toBe(false);
+    expect(
+      getRequiredElement<HTMLElement>(button, '.game-info__favorite-icon')
+        .hidden,
+    ).toBe(true);
     expect(count.textContent).toBe('1.2K');
   });
 
@@ -126,8 +133,19 @@ describe('game details content', () => {
     });
 
     expect(button.disabled).toBe(true);
+    expect(button.ariaBusy).toBe('true');
     expect(button.ariaPressed).toBe('false');
-    expect(button.getAttribute('aria-label')).toContain('6 likes');
+    expect(button.getAttribute('aria-label')).toBe(
+      'Updating this comment like.',
+    );
+    expect(
+      getRequiredElement<HTMLElement>(button, '[data-comment-like-pending]')
+        .hidden,
+    ).toBe(false);
+    expect(
+      getRequiredElement<HTMLElement>(button, '.game-comment__like-icon')
+        .hidden,
+    ).toBe(true);
     expect(
       getRequiredElement(button, '[data-comment-like-count]').textContent,
     ).toBe('6');

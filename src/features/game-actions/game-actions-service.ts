@@ -1,4 +1,7 @@
-import type { AppSession } from '../auth/app-session';
+import {
+  APP_SESSION_FALLBACK_NAME,
+  type AppSession,
+} from '../auth/app-session';
 import type { SessionController } from '../auth/session-controller';
 import {
   createGameComment,
@@ -184,7 +187,13 @@ const validateComment = (
   session: AppSession,
   rawText: string,
 ): { readonly authorName: string; readonly text: string } => {
-  const authorName: string = session.displayName.trim();
+  const displayName: string = session.displayName.trim();
+  const emailLocalPart: string = session.email.split('@', 1)[0]?.trim() ?? '';
+  const authorName: string =
+    [displayName, emailLocalPart].find(
+      (candidate: string): boolean =>
+        candidate.length >= 2 && candidate.length <= 30,
+    ) ?? APP_SESSION_FALLBACK_NAME;
 
   if (authorName.length < 2 || authorName.length > 30) {
     throw new CommentValidationError('author-name-length');

@@ -181,7 +181,7 @@
 
     &:disabled {
       cursor: not-allowed;
-      opacity: 0.68;
+      opacity: $opacity-disabled;
     }
 
     &--active {
@@ -211,6 +211,26 @@
         display: inline;
       }
     }
+  }
+}
+
+.game-action-pending {
+  width: $font-size-lg;
+  height: $font-size-lg;
+  flex: 0 0 auto;
+  border: $border-width-default solid currentcolor;
+  border-top-color: transparent;
+  border-radius: $radius-round;
+  animation: game-action-spin 720ms linear infinite;
+
+  &[hidden] {
+    display: none;
+  }
+
+  &--compact {
+    width: $font-size-sm;
+    height: $font-size-sm;
+    border-width: $border-width-thin;
   }
 }
 
@@ -492,5 +512,15 @@
   .game-details-dialog,
   .game-details-dialog::backdrop {
     transition-duration: $motion-reduced-duration;
+  }
+
+  .game-action-pending {
+    animation: none;
+  }
+}
+
+@keyframes game-action-spin {
+  to {
+    transform: rotate(1turn);
   }
 }

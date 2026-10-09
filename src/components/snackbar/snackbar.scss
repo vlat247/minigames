@@ -47,6 +47,10 @@
     border-left-color: $color-error;
   }
 
+  &--warning {
+    border-left-color: $color-primary;
+  }
+
   &--visible {
     opacity: 1;
     transform: translateY(0);
@@ -75,6 +79,10 @@
 
   &--error &__label {
     color: $color-error;
+  }
+
+  &--warning &__label {
+    color: $color-ink;
   }
 
   &__message {

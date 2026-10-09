@@ -205,24 +205,39 @@ export const updateGameFavoriteControls = (
   const favoriteLabel: HTMLElement | null = button.querySelector<HTMLElement>(
     '[data-favorite-label]',
   );
+  const favoriteIcon: HTMLElement | null = button.querySelector<HTMLElement>(
+    '.game-info__favorite-icon',
+  );
+  const pendingIndicator: HTMLElement | null =
+    button.querySelector<HTMLElement>('[data-favorite-pending]');
+  const isPending: boolean = state.isPending === true;
+  const favoriteText: string = state.isFavorited
+    ? 'Remove from Favorites'
+    : 'Add to Favorites';
 
-  button.disabled = state.isPending === true;
-  button.ariaBusy = state.isPending === true ? 'true' : null;
+  button.disabled = isPending;
+  button.ariaBusy = isPending ? 'true' : null;
   button.ariaPressed = String(state.isFavorited);
   button.classList.toggle('game-info__favorite--active', state.isFavorited);
   button.setAttribute(
     'aria-label',
-    `${getFavoriteActionLabel(state.gameName, state.isFavorited)}. ${displayLikes} ${normalizedLikes === 1 ? 'like' : 'likes'}.`,
+    isPending
+      ? `Updating favorite for ${state.gameName}.`
+      : `${getFavoriteActionLabel(state.gameName, state.isFavorited)}. ${displayLikes} ${normalizedLikes === 1 ? 'like' : 'likes'}.`,
   );
   countElement.textContent = displayLikes;
   countElement.parentElement?.setAttribute(
     'aria-label',
     `${displayLikes} ${normalizedLikes === 1 ? 'like' : 'likes'}`,
   );
+  if (favoriteIcon !== null) {
+    favoriteIcon.hidden = isPending;
+  }
+  if (pendingIndicator !== null) {
+    pendingIndicator.hidden = !isPending;
+  }
   if (favoriteLabel !== null) {
-    favoriteLabel.textContent = state.isFavorited
-      ? 'Remove from Favorites'
-      : 'Add to Favorites';
+    favoriteLabel.textContent = isPending ? 'Updating…' : favoriteText;
   }
 };
 
@@ -235,10 +250,16 @@ export const updateCommentLikeControl = (
   const likesCount: HTMLElement | null = button.querySelector<HTMLElement>(
     '[data-comment-like-count]',
   );
+  const likeIcon: HTMLElement | null = button.querySelector<HTMLElement>(
+    '.game-comment__like-icon',
+  );
+  const pendingIndicator: HTMLElement | null =
+    button.querySelector<HTMLElement>('[data-comment-like-pending]');
   const action: string = state.isLikedByCurrentUser ? 'Unlike' : 'Like';
+  const isPending: boolean = state.isPending === true;
 
-  button.disabled = state.isPending === true;
-  button.ariaBusy = state.isPending === true ? 'true' : null;
+  button.disabled = isPending;
+  button.ariaBusy = isPending ? 'true' : null;
   button.ariaPressed = String(state.isLikedByCurrentUser);
   button.classList.toggle(
     'game-comment__like--active',
@@ -246,8 +267,16 @@ export const updateCommentLikeControl = (
   );
   button.setAttribute(
     'aria-label',
-    `${action} this comment. ${displayLikes} ${normalizedLikes === 1 ? 'like' : 'likes'}.`,
+    isPending
+      ? 'Updating this comment like.'
+      : `${action} this comment. ${displayLikes} ${normalizedLikes === 1 ? 'like' : 'likes'}.`,
   );
+  if (likeIcon !== null) {
+    likeIcon.hidden = isPending;
+  }
+  if (pendingIndicator !== null) {
+    pendingIndicator.hidden = !isPending;
+  }
   if (likesCount !== null) {
     likesCount.textContent = displayLikes;
   }
@@ -344,6 +373,7 @@ export const createGameDetailsFragment = (
   const playButton: HTMLButtonElement = document.createElement('button');
   const favoriteButton: HTMLButtonElement = document.createElement('button');
   const favoriteLabel: HTMLSpanElement = document.createElement('span');
+  const favoritePending: HTMLSpanElement = document.createElement('span');
   const displayRating: string = game.rating.toFixed(1);
   const displayLikes: string = likesFormatter.format(game.likesCount);
   const likesStat: HTMLSpanElement = createStat(
@@ -402,8 +432,13 @@ export const createGameDetailsFragment = (
   favoriteButton.type = 'button';
   favoriteButton.dataset.gameFavorite = '';
   favoriteLabel.dataset.favoriteLabel = '';
+  favoritePending.className = 'game-action-pending';
+  favoritePending.dataset.favoritePending = '';
+  favoritePending.hidden = true;
+  favoritePending.ariaHidden = 'true';
   favoriteButton.append(
     createIcon(heartIconPath, 'game-info__favorite-icon'),
+    favoritePending,
     favoriteLabel,
   );
   if (likesCount !== null) {
@@ -437,6 +472,7 @@ const createComment = (
   const text: HTMLParagraphElement = document.createElement('p');
   const likes: HTMLButtonElement = document.createElement('button');
   const likesCount: HTMLSpanElement = document.createElement('span');
+  const likesPending: HTMLSpanElement = document.createElement('span');
   const authorName: string = comment.authorName.trim() || 'Anonymous player';
   const avatarColor: AvatarColor = resolveAvatarColor(comment);
 
@@ -461,8 +497,13 @@ const createComment = (
   likes.dataset.commentId = comment.commentId;
   likes.dataset.commentLike = '';
   likesCount.dataset.commentLikeCount = '';
+  likesPending.className = 'game-action-pending game-action-pending--compact';
+  likesPending.dataset.commentLikePending = '';
+  likesPending.hidden = true;
+  likesPending.ariaHidden = 'true';
   likes.append(
     createIcon(heartIconPath, 'game-comment__like-icon'),
+    likesPending,
     likesCount,
   );
   updateCommentLikeControl(likes, {

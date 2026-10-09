@@ -5,7 +5,6 @@ import {
   AUTHENTICATION_REQUIRED_MESSAGE,
   AuthenticationRequiredError,
   COMMENT_VALIDATION_MESSAGES,
-  CommentValidationError,
   GameActionResponseError,
   createAuthenticatedGameActionsService,
   type CommentLikeMutation,
@@ -209,24 +208,29 @@ describe('authenticated game-actions service', () => {
     },
   );
 
-  it.each(['A', `A${'b'.repeat(30)}`, ' '.repeat(4)])(
-    'rejects an invalid session display name before comment submission: %j',
-    async (displayName) => {
+  it.each([
+    ['A', 'ada@example.com', 'ada'],
+    [`A${'b'.repeat(30)}`, 'grace.hopper@example.com', 'grace.hopper'],
+    [' '.repeat(4), '@example.com', 'Player'],
+  ])(
+    'falls back from an invalid session display name %j to a valid comment author',
+    async (displayName, email, expectedAuthorName) => {
       const harness = createHarness({
-        session: { ...SESSION, displayName },
+        session: { ...SESSION, displayName, email },
       });
 
-      const request = harness.service.submitComment(
+      await expect(
+        harness.service.submitComment('cozy-minesweeper', 'Excellent game!'),
+      ).resolves.toEqual(COMMENT);
+      expect(harness.submitComment).toHaveBeenCalledWith(
         'cozy-minesweeper',
-        'Excellent game!',
+        {
+          authorName: expectedAuthorName,
+          text: 'Excellent game!',
+          userEmail: email,
+        },
+        {},
       );
-
-      await expect(request).rejects.toBeInstanceOf(CommentValidationError);
-      await expect(request).rejects.toMatchObject({
-        code: 'author-name-length',
-        message: COMMENT_VALIDATION_MESSAGES.authorNameLength,
-      });
-      expect(harness.submitComment).not.toHaveBeenCalled();
     },
   );
 
