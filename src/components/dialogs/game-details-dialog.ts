@@ -106,9 +106,13 @@ const isAmbiguousMutationError = (error: unknown): boolean => {
   );
 };
 
+const openAuthentication = (): void => {
+  dispatchAuthDialogRequest('login');
+};
+
 const requestAuthentication = (message: string): void => {
   dispatchSnackbar({ message, variant: 'warning' });
-  dispatchAuthDialogRequest('login');
+  openAuthentication();
 };
 
 const getRequiredElement = <ElementType extends Element>(
@@ -176,6 +180,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
   let commentSubmission:
     | {
         readonly email: string;
+        readonly sessionRevision: number;
         readonly slug: string;
       }
     | undefined;
@@ -187,6 +192,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
   let favoriteMutation:
     | {
         readonly email: string;
+        readonly sessionRevision: number;
         readonly slug: string;
       }
     | undefined;
@@ -196,12 +202,14 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
     string,
     {
       readonly email: string;
+      readonly sessionRevision: number;
       readonly slug: string;
     }
   >();
   let openAnimationFrame: number | undefined;
   let renderedGame: GameDetails | undefined;
   let returnFocusElement: HTMLElement | null = null;
+  let sessionRevision: number = 0;
 
   const getFavoriteControls = ():
     | {
@@ -236,6 +244,19 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
       dialog.open &&
       activeSlug === slug &&
       activeSession?.email === email
+    );
+  };
+
+  const shouldOpenAuthenticationAfterMutation = (
+    slug: string,
+    mutationSessionRevision: number,
+  ): boolean => {
+    return (
+      !isDestroyed &&
+      dialog.open &&
+      activeSlug === slug &&
+      activeSession === undefined &&
+      sessionRevision === mutationSessionRevision + 1
     );
   };
 
@@ -590,10 +611,15 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
   };
 
   const getActionSession = (signInMessage: string): AppSession | undefined => {
+    const wasSessionActive: boolean = activeSession !== undefined;
     const session: AppSession | undefined =
       gameActionsService?.getActiveSession();
     if (session === undefined) {
-      requestAuthentication(signInMessage);
+      if (wasSessionActive) {
+        openAuthentication();
+      } else {
+        requestAuthentication(signInMessage);
+      }
       return undefined;
     }
 
@@ -625,6 +651,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
 
     const mutation = {
       email: session.email,
+      sessionRevision,
       slug,
     };
     favoriteMutation = mutation;
@@ -651,12 +678,17 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
         variant: 'success',
       });
     } catch (error: unknown) {
-      if (!isActiveMutationIdentity(slug, session.email)) {
+      if (error instanceof AuthenticationRequiredError) {
+        if (
+          favoriteMutation === mutation &&
+          shouldOpenAuthenticationAfterMutation(slug, mutation.sessionRevision)
+        ) {
+          openAuthentication();
+        }
         return;
       }
 
-      if (error instanceof AuthenticationRequiredError) {
-        requestAuthentication(FAVORITE_SIGN_IN_MESSAGE);
+      if (!isActiveMutationIdentity(slug, session.email)) {
         return;
       }
 
@@ -702,6 +734,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
 
     const mutation = {
       email: session.email,
+      sessionRevision,
       slug,
     };
     const draft: string = composer.textarea.value;
@@ -727,12 +760,17 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
       shouldRefreshComments = true;
       dispatchSnackbar({ message: 'Comment posted.', variant: 'success' });
     } catch (error: unknown) {
-      if (!isActiveMutationIdentity(slug, session.email)) {
+      if (error instanceof AuthenticationRequiredError) {
+        if (
+          commentSubmission === mutation &&
+          shouldOpenAuthenticationAfterMutation(slug, mutation.sessionRevision)
+        ) {
+          openAuthentication();
+        }
         return;
       }
 
-      if (error instanceof AuthenticationRequiredError) {
-        requestAuthentication('Sign in to post comments.');
+      if (!isActiveMutationIdentity(slug, session.email)) {
         return;
       }
 
@@ -797,6 +835,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
 
     const mutation = {
       email: session.email,
+      sessionRevision,
       slug,
     };
     likeMutations.set(commentId, mutation);
@@ -825,12 +864,17 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
         variant: 'success',
       });
     } catch (error: unknown) {
-      if (!isActiveMutationIdentity(slug, session.email)) {
+      if (error instanceof AuthenticationRequiredError) {
+        if (
+          likeMutations.get(commentId) === mutation &&
+          shouldOpenAuthenticationAfterMutation(slug, mutation.sessionRevision)
+        ) {
+          openAuthentication();
+        }
         return;
       }
 
-      if (error instanceof AuthenticationRequiredError) {
-        requestAuthentication(COMMENT_LIKE_SIGN_IN_MESSAGE);
+      if (!isActiveMutationIdentity(slug, session.email)) {
         return;
       }
 
@@ -1112,6 +1156,7 @@ export const createGameDetailsDialog = (): GameDetailsDialogController => {
         return;
       }
 
+      sessionRevision += 1;
       activeSession = session;
       renderCommentComposer();
 
