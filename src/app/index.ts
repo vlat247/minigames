@@ -9,6 +9,7 @@ import { initializeFirebase } from '../services/firebase';
 import { LOGOUT_REQUEST_EVENT } from '../components/header/header-events';
 import { createAuthenticationService } from '../features/auth/authentication-service';
 import { createSessionController } from '../features/auth/session-controller';
+import { createAuthenticatedGameActionsService } from '../features/game-actions/authenticated-game-actions';
 
 const ROOT_ELEMENT_ID: string = 'app';
 
@@ -27,6 +28,9 @@ const initializeApp = (): void => {
   const sessionController = createSessionController({ auth });
   const authenticationService = createAuthenticationService({
     auth,
+    sessionController,
+  });
+  const gameActionsService = createAuthenticatedGameActionsService({
     sessionController,
   });
   const eventController = new AbortController();
@@ -54,6 +58,7 @@ const initializeApp = (): void => {
     sessionController,
   );
   shell.setAuthenticationService(authenticationService);
+  shell.setGameActionsService(gameActionsService);
   router.start();
 
   import.meta.hot?.dispose((): void => {

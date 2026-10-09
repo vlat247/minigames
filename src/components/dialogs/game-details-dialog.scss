@@ -192,6 +192,11 @@
         filter: none;
       }
     }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: $shadow-button, $focus-ring;
+    }
   }
 
   @include tablet-up {
@@ -299,16 +304,20 @@
   font-size: $font-size-2xs;
   font-weight: $font-weight-semibold;
 
+  &--green {
+    background: $color-avatar-green;
+  }
+
   &--blue {
     background: $color-avatar-blue;
   }
 
-  &--yellow {
-    background: $color-primary;
-  }
-
   &--pink {
     background: $color-avatar-pink;
+  }
+
+  &--lavender {
+    background: $color-avatar-lavender;
   }
 }
 
@@ -363,6 +372,18 @@
     background: transparent;
     color: $color-ink;
     font-size: $font-size-2xs;
+    cursor: pointer;
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: $opacity-disabled;
+    }
+
+    &:focus-visible {
+      outline: none;
+      border-radius: $radius-xs;
+      box-shadow: $focus-ring;
+    }
 
     &-icon {
       width: $font-size-sm;
@@ -371,12 +392,99 @@
       filter: grayscale(1) brightness(0.35);
       object-fit: contain;
     }
+
+    &--active &-icon {
+      filter: none;
+    }
+  }
+}
+
+.game-comment-composer {
+  display: grid;
+  grid-template-columns: $game-comment-avatar-size minmax(0, 1fr) auto;
+  gap: $space-1;
+  align-items: end;
+  margin-bottom: $space-3;
+  padding: $space-2;
+  border: $border-width-thin solid $color-outline;
+  border-bottom: $border-width-default solid $color-ink;
+  border-radius: $radius-sm;
+  background: $color-surface;
+
+  &__field {
+    display: grid;
+    min-width: 0;
+  }
+
+  &__label {
+    margin-bottom: $space-0-5;
+    color: $color-ink;
+    font-size: $font-size-2xs;
+    font-weight: $font-weight-semibold;
+  }
+
+  textarea {
+    width: 100%;
+    min-height: $game-comment-control-height;
+    max-height: $game-comment-textarea-max-height;
+    padding: $space-1;
+    overflow-y: auto;
+    border: $border-width-default solid $color-ink;
+    border-radius: $radius-sm;
+    background: $color-background;
+    color: $color-text;
+    font-family: $font-family-primary;
+    font-size: $font-size-xs;
+    line-height: $line-height-body;
+    resize: none;
+
+    &::placeholder {
+      color: $color-text-muted;
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: $focus-ring;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: $opacity-disabled;
+    }
+  }
+
+  &__submit {
+    min-width: $game-comment-submit-size;
+    min-height: $game-comment-control-height;
+    padding-inline: $space-2;
+    box-shadow: $shadow-button;
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: $shadow-button, $focus-ring;
+    }
+  }
+
+  &__status {
+    grid-column: 2 / -1;
+    margin: 0;
+    color: $color-text-muted;
+    font-size: $font-size-2xs;
+    line-height: $line-height-body;
+
+    &--error {
+      color: $color-error;
+    }
   }
 }
 
 @include hover-capable {
   .game-details-dialog__close:hover {
     background: $color-hover;
+  }
+
+  .game-comment__like:hover:not(:disabled) {
+    color: $color-tertiary;
   }
 }
 

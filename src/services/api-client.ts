@@ -7,6 +7,10 @@ export interface ApiRequestOptions {
   readonly signal?: AbortSignal;
 }
 
+export interface ApiJsonRequestOptions extends ApiRequestOptions {
+  readonly body: unknown;
+}
+
 export class ApiError extends Error {
   public readonly url: string;
 
@@ -129,21 +133,21 @@ const parseSuccessResponse = async <TResponse>(
   }
 };
 
-export const getApiJson = async <TResponse>(
+const requestApiJson = async <TResponse>(
   path: string,
-  options: ApiRequestOptions = {},
+  init: RequestInit,
+  signal?: AbortSignal,
 ): Promise<TResponse> => {
   const url: string = new URL(path, API_BASE_URL).href;
   let response: Response;
 
   try {
     response = await fetch(url, {
-      headers: { Accept: 'application/json' },
-      method: 'GET',
-      signal: options.signal,
+      ...init,
+      signal,
     });
   } catch (error: unknown) {
-    if (options.signal?.aborted === true || isNativeAbortError(error)) {
+    if (signal?.aborted === true || isNativeAbortError(error)) {
       throw new ApiAbortError(url, error);
     }
 
@@ -154,7 +158,7 @@ export const getApiJson = async <TResponse>(
     const parsedError: ParsedErrorResponse = await parseErrorResponse(
       response,
       url,
-      options.signal,
+      signal,
     );
     throw new ApiHttpError(
       response,
@@ -164,5 +168,37 @@ export const getApiJson = async <TResponse>(
     );
   }
 
-  return parseSuccessResponse<TResponse>(response, url, options.signal);
+  return parseSuccessResponse<TResponse>(response, url, signal);
+};
+
+export const getApiJson = <TResponse>(
+  path: string,
+  options: ApiRequestOptions = {},
+): Promise<TResponse> => {
+  return requestApiJson<TResponse>(
+    path,
+    {
+      headers: { Accept: 'application/json' },
+      method: 'GET',
+    },
+    options.signal,
+  );
+};
+
+export const postApiJson = <TResponse>(
+  path: string,
+  options: ApiJsonRequestOptions,
+): Promise<TResponse> => {
+  return requestApiJson<TResponse>(
+    path,
+    {
+      body: JSON.stringify(options.body),
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      method: 'POST',
+    },
+    options.signal,
+  );
 };

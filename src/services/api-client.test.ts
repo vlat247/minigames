@@ -8,6 +8,7 @@ import {
   ApiResponseError,
   getApiJson,
   isApiAbortError,
+  postApiJson,
 } from './api-client';
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -39,6 +40,31 @@ describe('getApiJson', () => {
       method: 'GET',
       signal: undefined,
     });
+  });
+
+  it('posts a JSON body and returns the parsed response', async () => {
+    const payload = { data: { isFavorited: true, likesCount: 12 } };
+    const controller = new AbortController();
+    fetchMock.mockResolvedValueOnce(Response.json(payload, { status: 200 }));
+
+    await expect(
+      postApiJson<typeof payload>('/games/cozy/favorite', {
+        body: { userEmail: 'player@example.com' },
+        signal: controller.signal,
+      }),
+    ).resolves.toEqual(payload);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${API_BASE_URL}/games/cozy/favorite`,
+      {
+        body: JSON.stringify({ userEmail: 'player@example.com' }),
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        method: 'POST',
+        signal: controller.signal,
+      },
+    );
   });
 
   it('throws an HTTP error with the API message and response details', async () => {
