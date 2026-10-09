@@ -49,7 +49,7 @@ const loginPanelMarkup: string = `
           <label for="login-email">Email Address</label>
           <div class="auth-field__control">
             <span class="material-symbols-rounded" aria-hidden="true">mail</span>
-            <input id="login-email" name="email" type="email" autocomplete="email" placeholder="e.g. alex@minigames.com" aria-describedby="login-email-error" aria-invalid="false" />
+            <input id="login-email" name="email" type="email" autocomplete="email" placeholder="e.g. alex@minigames.com" aria-describedby="login-email-error" aria-invalid="false" required />
           </div>
           <p class="auth-field__error" id="login-email-error" data-auth-error="email" aria-live="polite"></p>
         </div>
@@ -58,7 +58,7 @@ const loginPanelMarkup: string = `
           <label for="login-password">Password</label>
           <div class="auth-field__control">
             <span class="material-symbols-rounded" aria-hidden="true">lock</span>
-            <input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="••••••••" aria-describedby="login-password-error" aria-invalid="false" />
+            <input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="••••••••" aria-describedby="login-password-error" aria-invalid="false" minlength="6" required />
             <button class="auth-field__visibility" type="button" data-password-target="login-password" aria-label="Show password">
               <span class="material-symbols-rounded" aria-hidden="true">visibility</span>
             </button>
@@ -101,7 +101,7 @@ const registerPanelMarkup: string = `
           <label for="register-username">Username</label>
           <div class="auth-field__control">
             <span class="material-symbols-rounded" aria-hidden="true">person</span>
-            <input id="register-username" name="username" type="text" autocomplete="username" placeholder="e.g. CozyGamer99" aria-describedby="register-username-error" aria-invalid="false" />
+            <input id="register-username" name="username" type="text" autocomplete="username" placeholder="e.g. CozyGamer99" aria-describedby="register-username-error" aria-invalid="false" minlength="2" maxlength="30" required />
           </div>
           <p class="auth-field__error" id="register-username-error" data-auth-error="username" aria-live="polite"></p>
         </div>
@@ -110,7 +110,7 @@ const registerPanelMarkup: string = `
           <label for="register-email">Email Address</label>
           <div class="auth-field__control">
             <span class="material-symbols-rounded" aria-hidden="true">mail</span>
-            <input id="register-email" name="email" type="email" autocomplete="email" placeholder="your.email@domain.com" aria-describedby="register-email-error" aria-invalid="false" />
+            <input id="register-email" name="email" type="email" autocomplete="email" placeholder="your.email@domain.com" aria-describedby="register-email-error" aria-invalid="false" required />
           </div>
           <p class="auth-field__error" id="register-email-error" data-auth-error="email" aria-live="polite"></p>
         </div>
@@ -119,7 +119,7 @@ const registerPanelMarkup: string = `
           <label for="register-password">Password</label>
           <div class="auth-field__control">
             <span class="material-symbols-rounded" aria-hidden="true">lock</span>
-            <input id="register-password" name="password" type="password" autocomplete="new-password" placeholder="At least 6 characters" aria-describedby="register-password-error" aria-invalid="false" />
+            <input id="register-password" name="password" type="password" autocomplete="new-password" placeholder="At least 6 characters" aria-describedby="register-password-error" aria-invalid="false" minlength="6" required />
             <button class="auth-field__visibility" type="button" data-password-target="register-password" aria-label="Show password">
               <span class="material-symbols-rounded" aria-hidden="true">visibility</span>
             </button>
@@ -131,7 +131,7 @@ const registerPanelMarkup: string = `
           <label for="register-confirm-password">Confirm Password</label>
           <div class="auth-field__control">
             <span class="material-symbols-rounded" aria-hidden="true">lock</span>
-            <input id="register-confirm-password" name="confirmPassword" type="password" autocomplete="new-password" placeholder="Repeat your password" aria-describedby="register-confirm-password-error" aria-invalid="false" />
+            <input id="register-confirm-password" name="confirmPassword" type="password" autocomplete="new-password" placeholder="Repeat your password" aria-describedby="register-confirm-password-error" aria-invalid="false" minlength="6" required />
             <button class="auth-field__visibility" type="button" data-password-target="register-confirm-password" aria-label="Show password">
               <span class="material-symbols-rounded" aria-hidden="true">visibility</span>
             </button>
@@ -445,6 +445,10 @@ export const createAuthDialog = (): AuthDialogController => {
   const closeDialog = (): void => {
     if (!dialog.open || dialog.classList.contains('auth-dialog--closing')) {
       return;
+    }
+    if (openAnimationFrame !== undefined) {
+      globalThis.cancelAnimationFrame(openAnimationFrame);
+      openAnimationFrame = undefined;
     }
     dialog.classList.add('auth-dialog--closing');
     dialog.classList.remove('auth-dialog--visible');

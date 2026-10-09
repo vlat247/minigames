@@ -77,9 +77,12 @@ const createHarness = (options: HarnessOptions = {}) => {
   const establishSession = vi.fn<
     AuthenticationSessionController['establishSession']
   >(() => Promise.resolve());
+  const prepareForAuthentication = vi.fn<
+    AuthenticationSessionController['prepareForAuthentication']
+  >(() => options.ready ?? Promise.resolve());
   const sessionController: AuthenticationSessionController = {
     establishSession,
-    ready: options.ready ?? Promise.resolve(),
+    prepareForAuthentication,
   };
   const dependencies: AuthenticationDependencies = {
     createGoogleAuthProvider,
@@ -100,6 +103,7 @@ const createHarness = (options: HarnessOptions = {}) => {
     createGoogleAuthProvider,
     createUserWithEmailAndPassword,
     establishSession,
+    prepareForAuthentication,
     service,
     signInWithEmailAndPassword,
     signInWithPopup,
@@ -120,6 +124,7 @@ describe('authentication service', () => {
 
     expect(harness.signInWithEmailAndPassword).not.toHaveBeenCalled();
     expect(harness.establishSession).not.toHaveBeenCalled();
+    expect(harness.prepareForAuthentication).toHaveBeenCalledOnce();
 
     ready.resolve();
     await expect(request).resolves.toBeUndefined();

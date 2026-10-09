@@ -72,7 +72,7 @@ export interface AuthenticationService {
 
 export interface AuthenticationSessionController {
   readonly establishSession: (profile: AppSessionProfile) => Promise<unknown>;
-  readonly ready: Promise<void>;
+  readonly prepareForAuthentication: () => Promise<void>;
 }
 
 export interface AuthenticationDependencies {
@@ -182,7 +182,7 @@ export const createAuthenticationService = (
 
   const waitUntilSessionReady = async (): Promise<void> => {
     try {
-      await sessionController.ready;
+      await sessionController.prepareForAuthentication();
     } catch (error: unknown) {
       throw new AuthenticationError('session-setup-failed', { cause: error });
     }

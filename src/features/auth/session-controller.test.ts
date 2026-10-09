@@ -339,6 +339,30 @@ describe('session controller', () => {
     });
   });
 
+  it('waits for an in-flight logout before allowing new authentication', async () => {
+    writeSession();
+    const deferred = createDeferred<void>();
+    const { controller } = track(
+      createHarness(() => AUTHENTICATED_AT + 1, {
+        signOut: (): Promise<void> => deferred.promise,
+      }),
+    );
+    const logoutPromise = controller.logout();
+    let isPrepared = false;
+    const prepare = async (): Promise<void> => {
+      await controller.prepareForAuthentication();
+      isPrepared = true;
+    };
+    const preparation = prepare();
+
+    await Promise.resolve();
+    expect(isPrepared).toBe(false);
+
+    deferred.resolve();
+    await Promise.all([logoutPromise, preparation]);
+    expect(isPrepared).toBe(true);
+  });
+
   it('keeps Guest Mode and reports Firebase sign-out rejection without rejecting', async () => {
     writeSession();
     const { controller, notify } = track(
