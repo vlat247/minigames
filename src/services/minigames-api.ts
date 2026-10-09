@@ -1,13 +1,17 @@
 import type {
   CategoriesResponse,
+  CommentLikeResponse,
   CommentSort,
   CommentsResponse,
+  CreateCommentInput,
+  CreateCommentResponse,
+  FavoriteGameResponse,
   GameDetailsResponse,
   GamesResponse,
   GameSort,
   LeaderboardResponse,
 } from '../types/api';
-import { getApiJson, type ApiRequestOptions } from './api-client';
+import { getApiJson, postApiJson, type ApiRequestOptions } from './api-client';
 
 export interface LibraryGamesQuery {
   readonly category: string;
@@ -107,5 +111,47 @@ export const fetchGameComments = (
   return getApiJson<CommentsResponse>(
     createPath(`${createGamePath(gameSlug)}/comments`, parameters),
     { signal: options.signal },
+  );
+};
+
+export const toggleGameFavorite = (
+  gameSlug: string,
+  userEmail: string,
+  options: ApiRequestOptions = {},
+): Promise<FavoriteGameResponse> => {
+  return postApiJson<FavoriteGameResponse>(
+    `${createGamePath(gameSlug)}/favorite`,
+    {
+      body: { userEmail },
+      signal: options.signal,
+    },
+  );
+};
+
+export const createGameComment = (
+  gameSlug: string,
+  input: CreateCommentInput,
+  options: ApiRequestOptions = {},
+): Promise<CreateCommentResponse> => {
+  return postApiJson<CreateCommentResponse>(
+    `${createGamePath(gameSlug)}/comments`,
+    {
+      body: input,
+      signal: options.signal,
+    },
+  );
+};
+
+export const toggleCommentLike = (
+  commentId: string,
+  userEmail: string,
+  options: ApiRequestOptions = {},
+): Promise<CommentLikeResponse> => {
+  return postApiJson<CommentLikeResponse>(
+    `/api/comments/${encodeURIComponent(commentId)}/like`,
+    {
+      body: { userEmail },
+      signal: options.signal,
+    },
   );
 };
