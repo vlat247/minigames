@@ -7,6 +7,7 @@ import { libraryPage } from '../pages/library/library';
 import { notFoundPage } from '../pages/not-found/not-found';
 import { initializeFirebase } from '../services/firebase';
 import { LOGOUT_REQUEST_EVENT } from '../components/header/header-events';
+import { createAuthenticationService } from '../features/auth/authentication-service';
 import { createSessionController } from '../features/auth/session-controller';
 
 const ROOT_ELEMENT_ID: string = 'app';
@@ -24,6 +25,10 @@ const initializeApp = (): void => {
   const rootElement: HTMLDivElement = createRootElement();
   const shell: AppShell = createAppShell(rootElement);
   const sessionController = createSessionController({ auth });
+  const authenticationService = createAuthenticationService({
+    auth,
+    sessionController,
+  });
   const eventController = new AbortController();
   const unsubscribeSession = sessionController.subscribe(shell.setSession);
   const router: Router = new Router(shell.outlet, shell.setActivePath, {
@@ -48,6 +53,7 @@ const initializeApp = (): void => {
     shell,
     sessionController,
   );
+  shell.setAuthenticationService(authenticationService);
   router.start();
 
   import.meta.hot?.dispose((): void => {

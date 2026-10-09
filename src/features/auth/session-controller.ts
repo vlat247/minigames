@@ -51,6 +51,11 @@ export interface SessionController {
   readonly getSession: () => AppSession | undefined;
   readonly logout: () => Promise<void>;
   /**
+   * Waits for every Guest Mode Firebase sign-out that could conflict with a
+   * new credential request.
+   */
+  readonly prepareForAuthentication: () => Promise<void>;
+  /**
    * Re-reads and validates storage before returning an authenticated session.
    */
   readonly requireActiveSession: () => AppSession | undefined;
@@ -199,6 +204,16 @@ export const createSessionController = (
     }
   })();
 
+  const prepareForAuthentication = async (): Promise<void> => {
+    await ready;
+    if (guestSignOutAttempt !== undefined) {
+      await guestSignOutAttempt.result;
+    }
+    if (isDestroyed) {
+      throw new Error('The session controller has been destroyed.');
+    }
+  };
+
   const onVisibilityChange = (): void => {
     if (document.visibilityState === 'visible') {
       reconcileStoredSession();
@@ -239,13 +254,7 @@ export const createSessionController = (
     establishSession: async (
       profile: AppSessionProfile,
     ): Promise<AppSession> => {
-      await ready;
-      if (guestSignOutAttempt !== undefined) {
-        await guestSignOutAttempt.result;
-      }
-      if (isDestroyed) {
-        throw new Error('The session controller has been destroyed.');
-      }
+      await prepareForAuthentication();
 
       const session = createAppSession(profile, clock);
       writeAppSession(session, storage);
@@ -285,6 +294,7 @@ export const createSessionController = (
         });
       }
     },
+    prepareForAuthentication,
     requireActiveSession: (): AppSession | undefined =>
       reconcileStoredSession(),
     subscribe: (subscriber: SessionSubscriber): (() => void) => {
