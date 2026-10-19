@@ -1,0 +1,40 @@
+@use '../../styles/abstracts/tokens' as *;
+@use '../../styles/abstracts/mixins' as *;
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: $space-5;
+
+  &__title-group {
+    display: flex;
+    align-items: center;
+    gap: $space-1;
+  }
+
+  &__accent {
+    width: $space-1;
+    height: $space-4;
+    border-radius: $radius-xs;
+    background: $color-primary;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: $font-size-xl;
+    line-height: $line-height-heading;
+  }
+
+  &__title-compact {
+    display: none;
+  }
+
+  @include desktop-up {
+    min-height: $space-6;
+
+    &__title {
+      font-size: $font-size-2xl;
+    }
+  }
+}

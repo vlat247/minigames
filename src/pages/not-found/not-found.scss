@@ -1,0 +1,30 @@
+@use '../../styles/abstracts/tokens' as *;
+
+.not-found-page {
+  display: grid;
+  min-height: 60vh;
+  padding: $space-8 $space-2;
+  place-items: center;
+  text-align: center;
+
+  &__content {
+    max-width: 520px;
+  }
+
+  &__code {
+    margin-bottom: $space-1;
+    color: $color-tertiary;
+    font-size: $font-size-display;
+    font-weight: $font-weight-bold;
+    line-height: $line-height-solid;
+  }
+
+  h1 {
+    margin-bottom: $space-1;
+    font-size: $font-size-2xl;
+  }
+
+  p:not(.not-found-page__code) {
+    margin-bottom: $space-3;
+  }
+}

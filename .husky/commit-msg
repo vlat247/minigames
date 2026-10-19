@@ -1,0 +1,10 @@
+#!/bin/sh
+
+commit_message_file="$1"
+commit_message="$(head -n 1 "$commit_message_file")"
+conventional_pattern='^(feat|fix|refactor|docs|style|test|perf|build|ci|chore|revert)(\([a-z0-9._/-]+\))?(!)?: .+'
+
+if ! printf '%s' "$commit_message" | grep -Eq "$conventional_pattern"; then
+  printf '%s\n' "Commit message must follow Conventional Commits (for example: feat(header): add mobile menu)." >&2
+  exit 1
+fi

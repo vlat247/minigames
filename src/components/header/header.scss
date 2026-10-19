@@ -1,0 +1,546 @@
+@use '../../styles/abstracts/tokens' as *;
+@use '../../styles/abstracts/mixins' as *;
+@use '../../styles/abstracts/breakpoints' as *;
+
+.site-header {
+  position: relative;
+  z-index: $z-index-header;
+  height: $space-8;
+  border-bottom: $border-width-default solid $color-ink;
+  background: $color-background;
+  color: $color-ink;
+
+  &__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 100%;
+    padding-inline: $space-2;
+  }
+
+  &__brand,
+  &__compact-actions,
+  &__desktop-actions,
+  &__desktop-nav {
+    display: flex;
+    align-items: center;
+  }
+
+  &__brand {
+    gap: $space-1;
+    color: $color-ink;
+    font-size: $font-size-xl;
+    font-weight: $font-weight-bold;
+    line-height: $line-height-solid;
+    white-space: nowrap;
+  }
+
+  &__logo {
+    width: $space-4;
+    height: $space-4;
+    padding: $space-0-5;
+    border: $border-width-default solid currentcolor;
+    border-radius: $radius-xs;
+    object-fit: contain;
+  }
+
+  &__desktop-nav,
+  &__desktop-actions {
+    display: none;
+  }
+
+  &__compact-actions {
+    gap: $space-2;
+  }
+
+  &__compact-auth-slot {
+    display: flex;
+    align-items: center;
+  }
+
+  &__compact-sign-up {
+    display: none;
+  }
+
+  &__compact-profile {
+    display: flex;
+    align-items: center;
+  }
+
+  &__compact-avatar,
+  &__profile-avatar {
+    position: relative;
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    overflow: hidden;
+    border: $border-width-default solid $color-ink;
+    border-radius: $radius-round;
+    background: $color-primary;
+    color: $color-ink;
+    font-size: $font-size-2xs;
+    font-weight: $font-weight-bold;
+    line-height: $line-height-solid;
+  }
+
+  &__compact-avatar {
+    width: $avatar-size-compact;
+    height: $avatar-size-compact;
+  }
+
+  &__profile-avatar {
+    width: $avatar-size;
+    height: $avatar-size;
+  }
+
+  &__compact-avatar-image,
+  &__profile-avatar-image,
+  &__compact-avatar-fallback,
+  &__profile-avatar-fallback {
+    width: 100%;
+    height: 100%;
+  }
+
+  &__compact-avatar-image,
+  &__profile-avatar-image {
+    object-fit: cover;
+  }
+
+  &__compact-avatar-fallback,
+  &__profile-avatar-fallback {
+    display: grid;
+    place-items: center;
+
+    &[hidden] {
+      display: none;
+    }
+
+    .material-symbols-rounded {
+      font-size: $font-size-lg;
+    }
+  }
+
+  &__profile {
+    position: relative;
+  }
+
+  &__profile-toggle {
+    display: flex;
+    align-items: center;
+    gap: $space-1;
+    min-height: $button-height;
+    padding: $space-0-5 $space-1;
+    border: $border-width-default solid transparent;
+    border-radius: $radius-sm;
+    background: transparent;
+    color: $color-ink;
+    cursor: pointer;
+    transition:
+      border-color $transition-fast,
+      background-color $transition-fast;
+  }
+
+  &__profile-name {
+    max-width: $header-profile-name-max-width;
+    overflow: hidden;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-bold;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__profile-arrow {
+    font-size: $font-size-lg;
+    transition: transform $transition-fast;
+  }
+
+  &__profile--open &__profile-arrow {
+    transform: rotate(180deg);
+  }
+
+  &__profile-menu {
+    position: absolute;
+    top: calc(100% + #{$space-1});
+    right: 0;
+    z-index: $z-index-header + 1;
+    width: $header-profile-menu-width;
+    overflow: hidden;
+    border: $border-width-default solid $color-ink;
+    border-radius: $radius-sm;
+    background: $color-surface;
+    box-shadow: $shadow-small;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  &__profile-identity {
+    display: grid;
+    gap: $space-0-5;
+    padding: $space-2;
+  }
+
+  &__profile-menu-name,
+  &__profile-email {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__profile-menu-name {
+    color: $color-ink;
+    font-size: $font-size-sm;
+  }
+
+  &__profile-email {
+    color: $color-text-muted;
+    font-size: $font-size-2xs;
+  }
+
+  &__logout {
+    width: 100%;
+    padding: $space-1 $space-2;
+    border: 0;
+    border-top: $border-width-thin solid $color-outline;
+    background: transparent;
+    color: $color-ink;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  &__menu-toggle {
+    position: relative;
+    z-index: $z-index-menu + 1;
+    display: grid;
+    place-content: center;
+    gap: $space-0-5;
+    width: $space-4;
+    height: $space-4;
+    border: $border-width-default solid currentcolor;
+    border-radius: $radius-sm;
+    background: transparent;
+    color: $color-ink;
+    cursor: pointer;
+    transition:
+      background-color $transition-default,
+      color $transition-default;
+
+    span {
+      display: block;
+      width: $font-size-lg;
+      height: $border-width-default;
+      border-radius: $radius-round;
+      background: currentcolor;
+      transition:
+        transform $transition-default,
+        opacity $transition-fast;
+    }
+  }
+
+  &--menu-open &__menu-toggle {
+    position: fixed;
+    top: $space-3;
+    right: $space-3;
+    background: $color-footer-low;
+    color: $color-white;
+
+    span:nth-child(1) {
+      transform: translateY($menu-icon-line-shift) rotate($menu-icon-rotation);
+    }
+
+    span:nth-child(2) {
+      opacity: 0;
+    }
+
+    span:nth-child(3) {
+      transform: translateY(-$menu-icon-line-shift) rotate(-$menu-icon-rotation);
+    }
+  }
+
+  @include tablet-up {
+    height: $header-height-compact;
+
+    &__inner {
+      padding-inline: $space-5;
+    }
+
+    &__compact-sign-up {
+      display: inline-flex;
+    }
+  }
+
+  @include above-tablet {
+    height: $header-height-desktop;
+
+    &__inner {
+      padding-inline: $space-2;
+    }
+
+    &__desktop-nav {
+      display: flex;
+      gap: $space-1;
+    }
+
+    &__desktop-actions {
+      display: flex;
+    }
+
+    &__nav-link {
+      position: relative;
+      padding-block: $space-1;
+      color: $color-text;
+      font-size: $font-size-sm;
+      font-weight: $font-weight-medium;
+      white-space: nowrap;
+
+      &::after {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        height: $border-width-default;
+        border-radius: $radius-round;
+        background: $color-primary;
+        content: '';
+        opacity: 0;
+        transform: scaleX(0);
+        transition:
+          opacity $transition-fast,
+          transform $transition-fast;
+      }
+
+      &--active {
+        color: $color-ink;
+        font-weight: $font-weight-bold;
+      }
+    }
+
+    &__desktop-actions {
+      gap: $space-1;
+
+      .btn {
+        white-space: nowrap;
+      }
+    }
+
+    &__compact-actions {
+      display: none;
+    }
+  }
+
+  @include desktop-up {
+    &__inner {
+      padding-inline: $space-10;
+    }
+
+    &__brand {
+      font-size: $font-size-xl;
+    }
+
+    &__logo {
+      width: $space-4;
+      height: $space-4;
+    }
+
+    &__desktop-nav {
+      gap: $space-4;
+    }
+
+    &__desktop-actions {
+      gap: $space-2;
+    }
+  }
+}
+
+.mobile-menu {
+  position: fixed;
+  z-index: $z-index-menu;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $space-4;
+  width: 100%;
+  min-width: $breakpoint-mobile-min;
+  min-height: 100dvh;
+  padding: $space-3;
+  overflow: hidden;
+  background: $color-footer;
+  color: $color-white;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(100%);
+  transition:
+    opacity $transition-default,
+    transform $transition-default;
+
+  &__brand {
+    display: flex;
+    align-items: center;
+    gap: $space-1;
+    width: fit-content;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+  }
+
+  &__nav {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: $space-3;
+  }
+
+  &__link {
+    width: fit-content;
+    color: $color-footer-text;
+    font-size: $font-size-md;
+    font-weight: $font-weight-medium;
+
+    &--active {
+      color: $color-primary;
+      font-weight: $font-weight-bold;
+    }
+  }
+
+  &__actions {
+    display: grid;
+    gap: $space-2;
+
+    .btn {
+      width: 100%;
+    }
+
+    .btn--secondary {
+      color: $color-white;
+    }
+  }
+
+  &__profile {
+    display: flex;
+    align-items: center;
+    gap: $space-2;
+    min-width: 0;
+    padding-block: $space-1;
+  }
+
+  &__profile-avatar {
+    position: relative;
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: $space-6;
+    height: $space-6;
+    overflow: hidden;
+    border: $border-width-default solid $color-white;
+    border-radius: $radius-round;
+    background: $color-primary;
+    color: $color-ink;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-bold;
+    line-height: $line-height-solid;
+  }
+
+  &__profile-avatar-image,
+  &__profile-avatar-fallback {
+    width: 100%;
+    height: 100%;
+  }
+
+  &__profile-avatar-image {
+    object-fit: cover;
+  }
+
+  &__profile-avatar-fallback {
+    display: grid;
+    place-items: center;
+
+    &[hidden] {
+      display: none;
+    }
+
+    .material-symbols-rounded {
+      font-size: $font-size-xl;
+    }
+  }
+
+  &__profile-copy {
+    display: grid;
+    min-width: 0;
+  }
+
+  &__profile-name,
+  &__profile-email {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__profile-name {
+    color: $color-white;
+    font-size: $font-size-sm;
+  }
+
+  &__profile-email {
+    color: $color-footer-text;
+    font-size: $font-size-2xs;
+  }
+
+  .site-header--menu-open & {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+  }
+
+  @include above-tablet {
+    display: none;
+  }
+}
+
+body.menu-open {
+  overflow: hidden;
+}
+
+@include hover-capable {
+  .site-header__nav-link:not(.site-header__nav-link--active):hover::after {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+
+  .site-header__menu-toggle:hover {
+    background: $color-hover;
+  }
+
+  .site-header__profile-toggle:hover,
+  .site-header__logout:hover {
+    background: $color-hover;
+  }
+
+  .site-header--menu-open .site-header__menu-toggle:hover {
+    background: $color-footer-low;
+    box-shadow: inset 0 0 0 $border-width-thin $color-primary;
+  }
+
+  .mobile-menu__link:hover {
+    color: $color-white;
+  }
+}
+
+.site-header__profile-toggle:focus-visible,
+.site-header__logout:focus-visible,
+.site-header__menu-toggle:focus-visible {
+  outline: none;
+  box-shadow: $focus-ring;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-menu,
+  .site-header__profile-arrow,
+  .site-header__profile-toggle,
+  .site-header__menu-toggle,
+  .site-header__menu-toggle span {
+    transition-duration: $motion-reduced-duration;
+  }
+}

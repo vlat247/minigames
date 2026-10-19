@@ -1,0 +1,180 @@
+@use '../../styles/abstracts/tokens' as *;
+@use '../../styles/abstracts/mixins' as *;
+
+.async-state {
+  display: grid;
+  width: 100%;
+  min-height: 160px;
+  place-items: center;
+
+  &--loading {
+    min-height: 0;
+  }
+
+  &--error,
+  &--empty {
+    padding: $space-3;
+    border: $border-width-default solid $color-ink;
+    border-radius: $radius-md;
+    background: $color-surface;
+  }
+
+  &--error {
+    justify-items: stretch;
+    min-height: 144px;
+    box-shadow: inset $space-1 0 0 $color-error;
+  }
+
+  &--error &__content {
+    justify-items: start;
+    padding-left: $space-1;
+    text-align: left;
+  }
+
+  &--empty {
+    border-style: dashed;
+  }
+
+  &__content {
+    display: grid;
+    gap: $space-1;
+    justify-items: center;
+    width: min(100%, 480px);
+    text-align: center;
+  }
+
+  &__title,
+  &__message {
+    margin: 0;
+  }
+
+  &__title {
+    color: $color-ink;
+    font-size: $font-size-md;
+    font-weight: $font-weight-bold;
+    line-height: $line-height-heading;
+  }
+
+  &__message {
+    color: $color-text;
+    font-size: $font-size-xs;
+  }
+
+  &__retry {
+    margin-top: $space-1;
+  }
+
+  &__visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  &__skeleton {
+    display: grid;
+    width: 100%;
+    gap: $space-2;
+  }
+
+  &__skeleton--cards {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  &__skeleton-item {
+    min-width: 0;
+    overflow: hidden;
+    border: $border-width-default solid $color-outline;
+    border-radius: $radius-md;
+    background: $color-surface;
+  }
+
+  &__skeleton-item--row {
+    display: grid;
+    grid-template-columns: $avatar-size minmax(0, 1fr) 64px;
+    gap: $space-2;
+    align-items: center;
+    min-height: $leaderboard-row-height;
+    padding: $space-2;
+  }
+
+  &__skeleton-body {
+    display: grid;
+    gap: $space-1;
+    padding: $space-2;
+  }
+
+  &__skeleton-text {
+    display: grid;
+    min-width: 0;
+    gap: $space-1;
+  }
+
+  &__skeleton-block {
+    display: block;
+    border-radius: $radius-xs;
+    background: $color-outline;
+    animation: async-state-pulse 1.2s ease-in-out infinite alternate;
+  }
+
+  &__skeleton-block--media {
+    height: 132px;
+    border-radius: 0;
+  }
+
+  &__skeleton-block--hero {
+    height: $game-details-hero-height;
+    border-radius: 0;
+  }
+
+  &__skeleton-block--title {
+    width: min(70%, 240px);
+    height: $space-3;
+  }
+
+  &__skeleton-block--line,
+  &__skeleton-block--line-short,
+  &__skeleton-block--value {
+    height: $space-2;
+  }
+
+  &__skeleton-block--line-short {
+    width: 62%;
+  }
+
+  &__skeleton-block--value {
+    width: 64px;
+  }
+
+  &__skeleton-block--avatar {
+    width: $avatar-size;
+    height: $avatar-size;
+    border-radius: $radius-round;
+  }
+
+  @include tablet-up {
+    &--error,
+    &--empty {
+      padding: $space-4;
+    }
+  }
+}
+
+@keyframes async-state-pulse {
+  from {
+    opacity: 0.45;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .async-state__skeleton-block {
+    animation: none;
+  }
+}
